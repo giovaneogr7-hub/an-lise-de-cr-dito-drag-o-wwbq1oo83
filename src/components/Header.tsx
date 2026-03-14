@@ -1,4 +1,4 @@
-import { Bell, Search, User, Menu } from 'lucide-react'
+import { Bell, Search, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar'
@@ -21,9 +21,12 @@ export function Header() {
       <div className="flex items-center gap-4 md:hidden">
         <SidebarTrigger className="text-white hover:bg-white/10 hover:text-white" />
         <Link to="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
-          <div className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-amber-500/40 bg-black shadow-[0_0_12px_rgba(245,158,11,0.2)]">
-            <img src={logoImg} alt="Dragão Crédito" className="h-full w-full object-cover" />
+          <div className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-primary/40 bg-black shadow-[0_0_12px_rgba(212,175,55,0.2)]">
+            <img src={logoImg} alt="Último Dragão Crédito" className="h-full w-full object-cover" />
           </div>
+          <span className="text-sm font-bold tracking-widest text-primary drop-shadow-md">
+            ÚLTIMO DRAGÃO
+          </span>
         </Link>
       </div>
 
@@ -35,10 +38,12 @@ export function Header() {
           to="/"
           className="hidden lg:hidden md:flex items-center gap-3 transition-opacity hover:opacity-80 group"
         >
-          <div className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-amber-500/40 bg-black shadow-[0_0_12px_rgba(245,158,11,0.2)] transition-transform duration-300 group-hover:scale-105">
-            <img src={logoImg} alt="Dragão Crédito" className="h-full w-full object-cover" />
+          <div className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-primary/40 bg-black shadow-[0_0_12px_rgba(212,175,55,0.2)] transition-transform duration-300 group-hover:scale-105">
+            <img src={logoImg} alt="Último Dragão Crédito" className="h-full w-full object-cover" />
           </div>
-          <span className="text-sm font-bold tracking-widest text-amber-500">DRAGÃO</span>
+          <span className="text-sm font-bold tracking-widest text-primary drop-shadow-md">
+            ÚLTIMO DRAGÃO
+          </span>
         </Link>
       </div>
 
@@ -48,7 +53,7 @@ export function Header() {
           <Input
             type="search"
             placeholder={isMobile ? 'Buscar...' : 'Buscar CPFs, propostas...'}
-            className="w-full bg-white/5 pl-10 border-white/10 text-white placeholder:text-muted-foreground focus-visible:ring-amber-500/50 focus-visible:border-amber-500/50 transition-colors sm:w-[300px]"
+            className="w-full bg-white/5 pl-10 border-white/10 text-white placeholder:text-muted-foreground focus-visible:ring-primary/50 focus-visible:border-primary/50 transition-colors sm:w-[300px]"
           />
         </div>
         <Button
@@ -57,14 +62,14 @@ export function Header() {
           className="relative text-muted-foreground hover:bg-white/10 hover:text-white shrink-0 transition-colors"
         >
           <Bell className="h-5 w-5" />
-          <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-amber-500 ring-2 ring-black shadow-[0_0_8px_rgba(245,158,11,0.8)]"></span>
+          <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-primary ring-2 ring-black shadow-[0_0_8px_rgba(212,175,55,0.8)]"></span>
         </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
               size="icon"
-              className="shrink-0 overflow-hidden rounded-full border border-white/10 bg-white/5 hover:border-amber-500/50 hover:bg-white/10 transition-colors"
+              className="shrink-0 overflow-hidden rounded-full border border-white/10 bg-white/5 hover:border-primary/50 hover:bg-white/10 transition-colors"
             >
               <User className="h-5 w-5 text-white/80" />
             </Button>
@@ -76,7 +81,9 @@ export function Header() {
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-1">
                 <p className="text-sm font-medium leading-none text-white">Usuário Master</p>
-                <p className="text-xs leading-none text-muted-foreground">admin@dragao.tech</p>
+                <p className="text-xs leading-none text-muted-foreground">
+                  admin@ultimodragao.tech
+                </p>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator className="bg-white/10" />

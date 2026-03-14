@@ -33,11 +33,13 @@ export function AppSidebar() {
           to="/"
           className="flex items-center gap-4 px-2 transition-opacity hover:opacity-80 group"
         >
-          <div className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-amber-500/40 bg-black shadow-[0_0_15px_rgba(245,158,11,0.2)] transition-transform duration-300 group-hover:scale-105">
-            <img src={logoImg} alt="Dragão Crédito Logo" className="h-full w-full object-cover" />
+          <div className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-primary/40 bg-black shadow-[0_0_15px_rgba(212,175,55,0.2)] transition-transform duration-300 group-hover:scale-105">
+            <img src={logoImg} alt="Último Dragão Logo" className="h-full w-full object-cover" />
           </div>
           <div className="flex flex-col">
-            <span className="text-base font-bold tracking-widest text-amber-500">DRAGÃO</span>
+            <span className="text-base font-bold tracking-widest text-primary drop-shadow-md">
+              ÚLTIMO DRAGÃO
+            </span>
             <span className="text-xs font-medium text-white/50">Análise Premium</span>
           </div>
         </Link>
@@ -60,11 +62,11 @@ export function AppSidebar() {
                     <SidebarMenuButton
                       asChild
                       isActive={isActive}
-                      className="h-10 px-3 transition-colors hover:bg-white/10 hover:text-white data-[active=true]:bg-amber-500/10 data-[active=true]:text-amber-500 data-[active=true]:font-medium"
+                      className="h-10 px-3 transition-colors hover:bg-white/10 hover:text-white data-[active=true]:bg-primary/10 data-[active=true]:text-primary data-[active=true]:font-medium"
                     >
                       <Link to={item.url} className="flex items-center gap-3">
                         <item.icon
-                          className={`h-4 w-4 ${isActive ? 'text-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.3)] rounded-full' : 'text-white/60'}`}
+                          className={`h-4 w-4 ${isActive ? 'text-primary shadow-[0_0_10px_rgba(212,175,55,0.3)] rounded-full' : 'text-white/60'}`}
                         />
                         <span>{item.title}</span>
                       </Link>
