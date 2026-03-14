@@ -53,8 +53,13 @@ export default function Signup() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   useEffect(() => {
-    if (!loading && user) {
-      if (!['ativo', 'aprovado'].includes(profile?.status || '')) {
+    if (!loading && user && profile) {
+      if (profile.role === 'admin') {
+        navigate('/')
+        return
+      }
+
+      if (!['ativo', 'aprovado'].includes(profile.status || '')) {
         navigate('/pending-approval')
       } else {
         navigate('/')

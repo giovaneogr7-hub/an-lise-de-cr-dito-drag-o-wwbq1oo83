@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/hooks/use-auth'
+import { supabase } from '@/lib/supabase/client'
 import {
   Card,
   CardContent,
@@ -48,7 +49,7 @@ const recoverySchema = z.object({
 export default function Login() {
   const navigate = useNavigate()
   const { toast } = useToast()
-  const { signIn, resetPassword, user, profile, loading } = useAuth()
+  const { signIn, resetPassword, user, profile, loading, signOut } = useAuth()
 
   const [isLoading, setIsLoading] = useState(false)
   const [loginError, setLoginError] = useState('')
@@ -56,14 +57,34 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false)
 
   useEffect(() => {
-    if (!loading && user) {
-      if (!['ativo', 'aprovado'].includes(profile?.status || '')) {
+    if (!loading && user && profile) {
+      const role = profile.role || ''
+      const status = profile.status || ''
+
+      if (role === 'admin') {
+        navigate('/')
+        return
+      }
+
+      if (!['ativo', 'aprovado'].includes(status)) {
+        if (['financeiro', 'cobrador'].includes(role) && status === 'pendente') {
+          signOut().then(() =>
+            setLoginError('Sua conta está aguardando aprovação do administrador'),
+          )
+          return
+        }
+
+        if (['cliente', 'investidor'].includes(role) && status === 'inativo') {
+          signOut().then(() => setLoginError('Sua conta foi desativada'))
+          return
+        }
+
         navigate('/pending-approval')
       } else {
         navigate('/')
       }
     }
-  }, [user, profile, loading, navigate])
+  }, [user, profile, loading, navigate, signOut])
 
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -92,10 +113,52 @@ export default function Login() {
       return
     }
 
-    toast({
-      title: 'Acesso Autorizado',
-      description: 'Bem-vindo ao ÚLTIMO DRAGÃO.',
-    })
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+    if (session?.user) {
+      const { data: userProfile } = await supabase
+        .from('usuarios')
+        .select('*')
+        .eq('id', session.user.id)
+        .single()
+
+      if (userProfile) {
+        const role = userProfile.role || ''
+        const status = userProfile.status || ''
+
+        if (role === 'admin') {
+          toast({ title: 'Acesso Autorizado', description: 'Bem-vindo ao ÚLTIMO DRAGÃO.' })
+          navigate('/')
+          return
+        }
+
+        if (!['ativo', 'aprovado'].includes(status)) {
+          if (['financeiro', 'cobrador'].includes(role) && status === 'pendente') {
+            setLoginError('Sua conta está aguardando aprovação do administrador')
+            await signOut()
+            setIsLoading(false)
+            return
+          }
+
+          if (['cliente', 'investidor'].includes(role) && status === 'inativo') {
+            setLoginError('Sua conta foi desativada')
+            await signOut()
+            setIsLoading(false)
+            return
+          }
+
+          navigate('/pending-approval')
+          return
+        }
+
+        toast({ title: 'Acesso Autorizado', description: 'Bem-vindo ao ÚLTIMO DRAGÃO.' })
+        navigate('/')
+        return
+      }
+    }
+
+    navigate('/')
   }
 
   const onRecoverySubmit = async (values: z.infer<typeof recoverySchema>) => {

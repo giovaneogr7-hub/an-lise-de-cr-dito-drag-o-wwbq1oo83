@@ -20,7 +20,10 @@ export default function Layout() {
     return <Navigate to="/login" replace />
   }
 
-  if (!profile || !['ativo', 'aprovado'].includes(profile.status || '')) {
+  const isAdmin = profile?.role === 'admin'
+  const isAtivo = ['ativo', 'aprovado'].includes(profile?.status || '')
+
+  if (!profile || (!isAdmin && !isAtivo)) {
     return <Navigate to="/pending-approval" replace />
   }
 

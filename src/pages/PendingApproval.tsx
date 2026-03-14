@@ -14,6 +14,7 @@ export default function PendingApproval() {
   }
 
   const status = profile?.status || 'pendente'
+  const role = profile?.role || ''
 
   let config = {
     icon: Clock,
@@ -27,7 +28,9 @@ export default function PendingApproval() {
     glow2: 'bg-orange-600/10',
   }
 
-  if (status === 'negado') {
+  if (status === 'pendente' && ['financeiro', 'cobrador'].includes(role)) {
+    config.desc = 'Sua conta está aguardando aprovação do administrador'
+  } else if (status === 'negado') {
     config = {
       icon: Ban,
       color: 'text-destructive',
@@ -50,6 +53,9 @@ export default function PendingApproval() {
       desc: 'Sua conta foi desativada temporariamente. Entre em contato com a administração.',
       glow1: 'bg-gray-500/10',
       glow2: 'bg-slate-600/10',
+    }
+    if (['cliente', 'investidor'].includes(role)) {
+      config.desc = 'Sua conta foi desativada'
     }
   }
 
