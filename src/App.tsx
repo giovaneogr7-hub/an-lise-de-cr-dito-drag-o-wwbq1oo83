@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -9,6 +9,7 @@ import Settings from './pages/Settings'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 import Onboarding from './pages/Onboarding'
+import Login from './pages/Login'
 
 const App = () => (
   <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
@@ -16,12 +17,14 @@ const App = () => (
       <Toaster />
       <Sonner />
       <Routes>
-        {/* Standalone Route for Onboarding */}
+        {/* Standalone Routes */}
+        <Route path="/login" element={<Login />} />
         <Route path="/onboarding" element={<Onboarding />} />
 
         {/* Dashboard Routes wrapped in Layout */}
         <Route element={<Layout />}>
           <Route path="/" element={<Index />} />
+          <Route path="/dashboard" element={<Navigate to="/" replace />} />
           <Route path="/analysis" element={<Analysis />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/settings" element={<Settings />} />

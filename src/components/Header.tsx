@@ -10,11 +10,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import logoImg from '@/assets/40409577-9054-4c9f-af12-2c8c43626167-a0a47.jpeg'
 
 export function Header() {
   const { isMobile } = useSidebar()
+  const navigate = useNavigate()
 
   return (
     <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-4 border-b border-white/5 bg-black/80 px-4 backdrop-blur-xl md:px-6">
@@ -94,7 +95,10 @@ export function Header() {
               Configurações
             </DropdownMenuItem>
             <DropdownMenuSeparator className="bg-white/10" />
-            <DropdownMenuItem className="text-red-400 focus:bg-red-400/10 focus:text-red-400 cursor-pointer transition-colors">
+            <DropdownMenuItem
+              className="text-red-400 focus:bg-red-400/10 focus:text-red-400 cursor-pointer transition-colors"
+              onClick={() => navigate('/login')}
+            >
               Sair
             </DropdownMenuItem>
           </DropdownMenuContent>
