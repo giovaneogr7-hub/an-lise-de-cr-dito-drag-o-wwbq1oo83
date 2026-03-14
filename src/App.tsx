@@ -10,30 +10,33 @@ import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 import Onboarding from './pages/Onboarding'
 import Login from './pages/Login'
+import { AuthProvider } from '@/hooks/use-auth'
 
 const App = () => (
-  <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <Routes>
-        {/* Standalone Routes */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/onboarding" element={<Onboarding />} />
+  <AuthProvider>
+    <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <Routes>
+          {/* Standalone Routes */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/onboarding" element={<Onboarding />} />
 
-        {/* Dashboard Routes wrapped in Layout */}
-        <Route element={<Layout />}>
-          <Route path="/" element={<Index />} />
-          <Route path="/dashboard" element={<Navigate to="/" replace />} />
-          <Route path="/analysis" element={<Analysis />} />
-          <Route path="/reports" element={<Reports />} />
-          <Route path="/settings" element={<Settings />} />
-        </Route>
+          {/* Dashboard Routes wrapped in Layout */}
+          <Route element={<Layout />}>
+            <Route path="/" element={<Index />} />
+            <Route path="/dashboard" element={<Navigate to="/" replace />} />
+            <Route path="/analysis" element={<Analysis />} />
+            <Route path="/reports" element={<Reports />} />
+            <Route path="/settings" element={<Settings />} />
+          </Route>
 
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </TooltipProvider>
-  </BrowserRouter>
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </TooltipProvider>
+    </BrowserRouter>
+  </AuthProvider>
 )
 
 export default App

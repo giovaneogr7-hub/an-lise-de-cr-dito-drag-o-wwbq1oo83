@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Coins, Filter, Percent, Users, Eye, Loader2 } from 'lucide-react'
-import { startOfMonth, endOfMonth, subMonths, startOfQuarter } from 'date-fns'
+import { Coins, Percent, Users, Eye, Loader2 } from 'lucide-react'
+import { startOfMonth, endOfMonth } from 'date-fns'
+import { DateRange } from 'react-day-picker'
 import {
   Select,
   SelectContent,
@@ -24,20 +25,28 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
 import { formatCurrency } from '@/lib/mock-data'
-import { useAuth } from '@/lib/auth'
-import { supabase, SolicitacaoCredito } from '@/lib/supabase'
+import { useAuth } from '@/hooks/use-auth'
+import { supabase } from '@/lib/supabase/client'
+import { DatePickerWithRange } from '@/components/ui/date-range-picker'
 
 export default function Index() {
   const navigate = useNavigate()
   const { toast } = useToast()
   const { user } = useAuth()
 
-  const [dbData, setDbData] = useState<SolicitacaoCredito[]>([])
+  const [dbData, setDbData] = useState<any[]>([])
+  const [operations, setOperations] = useState<any[]>([])
+  const [chartDbData, setChartDbData] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('todos')
-  const [periodFilter, setPeriodFilter] = useState('mes-atual')
+
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: startOfMonth(new Date()),
+    to: endOfMonth(new Date()),
+  })
 
   const fetchData = async () => {
+    if (!user?.id) return
     setIsLoading(true)
     try {
       let query = supabase
@@ -45,22 +54,40 @@ export default function Index() {
         .select('*, usuarios(nome, cpf)')
         .eq('usuario_id', user.id)
 
-      if (statusFilter !== 'todos') {
-        query = query.eq('status', statusFilter)
+      if (statusFilter !== 'todos') query = query.eq('status', statusFilter)
+      if (dateRange?.from) query = query.gte('data_solicitacao', dateRange.from.toISOString())
+      if (dateRange?.to) {
+        const endOfDay = new Date(dateRange.to)
+        endOfDay.setHours(23, 59, 59, 999)
+        query = query.lte('data_solicitacao', endOfDay.toISOString())
+      }
+
+      const { data, error } = await query
+      if (error) throw error
+      setDbData(data || [])
+
+      if (data && data.length > 0) {
+        const { data: ops } = await supabase
+          .from('operacoes')
+          .select('valor_liberado')
+          .in(
+            'solicitacao_id',
+            data.map((d) => d.id),
+          )
+        setOperations(ops || [])
+      } else {
+        setOperations([])
       }
 
       const now = new Date()
-      if (periodFilter === 'mes-atual') {
-        query = query.gte('data_solicitacao', startOfMonth(now).toISOString())
-      } else if (periodFilter === 'mes-anterior') {
-        query = query.gte('data_solicitacao', startOfMonth(subMonths(now, 1)).toISOString())
-        query = query.lte('data_solicitacao', endOfMonth(subMonths(now, 1)).toISOString())
-      } else if (periodFilter === 'trimestre') {
-        query = query.gte('data_solicitacao', startOfQuarter(now).toISOString())
-      }
-
-      const { data } = await query
-      if (data) setDbData(data)
+      const { data: chartDataRes } = await supabase
+        .from('solicitacoes_credito')
+        .select('status, data_solicitacao')
+        .eq('usuario_id', user.id)
+        .in('status', ['aprovado', 'negado'])
+        .gte('data_solicitacao', startOfMonth(now).toISOString())
+        .lte('data_solicitacao', endOfMonth(now).toISOString())
+      setChartDbData(chartDataRes || [])
     } catch (err) {
       console.error(err)
       toast({ title: 'Erro', description: 'Falha ao carregar dados.', variant: 'destructive' })
@@ -70,64 +97,44 @@ export default function Index() {
   }
 
   useEffect(() => {
+    if (!user?.id) return
     fetchData()
+    const channel = supabase
+      .channel('dashboard-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'solicitacoes_credito',
+          filter: `usuario_id=eq.${user.id}`,
+        },
+        fetchData,
+      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'operacoes' }, fetchData)
+      .subscribe()
+    return () => {
+      supabase.removeChannel(channel)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [user?.id, statusFilter, dateRange])
 
-  const handleApplyFilters = () => {
-    fetchData()
-    toast({
-      title: 'Filtros aplicados',
-      description: 'Os dados do dashboard foram sincronizados.',
-    })
-  }
-
-  const totalLiberado = dbData
-    .filter((d) => d.status === 'aprovado')
-    .reduce((sum, d) => sum + d.valor_solicitado, 0)
-
+  const totalLiberado = operations.reduce((sum, op) => sum + (Number(op.valor_liberado) || 0), 0)
   const taxaMedia =
-    dbData.length > 0 ? dbData.reduce((sum, d) => sum + d.taxa_juros, 0) / dbData.length : 0
-
+    dbData.length > 0
+      ? dbData.reduce((sum, d) => sum + (Number(d.taxa_juros) || 0), 0) / dbData.length
+      : 0
   const ativas = dbData.filter((d) => d.status === 'pendente').length
 
   const chartData = useMemo(() => {
     const groups = new Map<string, { aprovacoes: number; negacoes: number }>()
-    const monthNames = [
-      'Jan',
-      'Fev',
-      'Mar',
-      'Abr',
-      'Mai',
-      'Jun',
-      'Jul',
-      'Ago',
-      'Set',
-      'Out',
-      'Nov',
-      'Dez',
-    ]
+    ;['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4', 'Sem 5'].forEach((w) =>
+      groups.set(w, { aprovacoes: 0, negacoes: 0 }),
+    )
 
-    if (periodFilter === 'mes-atual' || periodFilter === 'mes-anterior') {
-      ;['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4', 'Sem 5'].forEach((w) =>
-        groups.set(w, { aprovacoes: 0, negacoes: 0 }),
-      )
-    } else {
-      monthNames.forEach((m) => groups.set(m, { aprovacoes: 0, negacoes: 0 }))
-    }
-
-    dbData.forEach((item) => {
-      if (item.status === 'pendente') return
-      const d = new Date(item.data_solicitacao)
-      let key = ''
-
-      if (periodFilter === 'mes-atual' || periodFilter === 'mes-anterior') {
-        const week = Math.ceil(d.getDate() / 7)
-        key = `Sem ${week > 5 ? 5 : week}`
-      } else {
-        key = monthNames[d.getMonth()]
-      }
-
+    chartDbData.forEach((item) => {
+      const week = Math.ceil(new Date(item.data_solicitacao).getDate() / 7)
+      const key = `Sem ${week > 5 ? 5 : week}`
       if (groups.has(key)) {
         const g = groups.get(key)!
         if (item.status === 'aprovado') g.aprovacoes += 1
@@ -137,14 +144,8 @@ export default function Index() {
 
     return Array.from(groups.entries())
       .map(([name, counts]) => ({ name, ...counts }))
-      .filter(
-        (g) =>
-          periodFilter === 'mes-atual' ||
-          periodFilter === 'mes-anterior' ||
-          g.aprovacoes > 0 ||
-          g.negacoes > 0,
-      )
-  }, [dbData, periodFilter])
+      .filter((g) => g.aprovacoes > 0 || g.negacoes > 0)
+  }, [chartDbData])
 
   return (
     <div className="space-y-6 sm:space-y-8 pb-8 animate-fade-in">
@@ -153,22 +154,10 @@ export default function Index() {
           <h1 className="text-3xl font-display font-bold text-foreground">Dashboard Geral</h1>
           <p className="text-muted-foreground">Monitoramento de solicitações e métricas ativas.</p>
         </div>
-
         <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto p-2 bg-black/40 rounded-xl border border-white/5 backdrop-blur-md">
-          <Select value={periodFilter} onValueChange={setPeriodFilter}>
-            <SelectTrigger className="w-[140px] bg-background border-border/50">
-              <SelectValue placeholder="Período" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="mes-atual">Mês Atual</SelectItem>
-              <SelectItem value="mes-anterior">Mês Anterior</SelectItem>
-              <SelectItem value="trimestre">Último Trimestre</SelectItem>
-              <SelectItem value="todos">Todo Período</SelectItem>
-            </SelectContent>
-          </Select>
-
+          <DatePickerWithRange date={dateRange} setDate={setDateRange} />
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[160px] bg-background border-border/50">
+            <SelectTrigger className="w-[160px] bg-background border-border/50 hover:bg-black/40 transition-colors">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -178,19 +167,6 @@ export default function Index() {
               <SelectItem value="negado">Negado</SelectItem>
             </SelectContent>
           </Select>
-
-          <Button
-            onClick={handleApplyFilters}
-            disabled={isLoading}
-            className="bg-primary text-black hover:bg-accent hover:text-white shadow-[0_0_15px_rgba(212,175,55,0.2)] hover:shadow-[0_0_15px_rgba(0,163,255,0.4)] transition-all duration-500 font-bold"
-          >
-            {isLoading ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <Filter className="w-4 h-4 mr-2" />
-            )}
-            Atualizar
-          </Button>
         </div>
       </div>
 
@@ -199,21 +175,21 @@ export default function Index() {
           title="Total de Crédito Liberado"
           value={formatCurrency(totalLiberado)}
           icon={Coins}
-          description="Refere-se ao status Aprovado"
+          description="Baseado nas solicitações filtradas"
           iconClassName="text-primary border-primary/20"
         />
         <MetricCard
           title="Taxa Média de Juros"
           value={`${taxaMedia.toFixed(2)}%`}
           icon={Percent}
-          description="Média no período filtrado"
+          description="Média do período filtrado"
           iconClassName="text-accent border-accent/20"
         />
         <MetricCard
           title="Solicitações Pendentes"
           value={ativas}
           icon={Users}
-          description="Aguardando análise"
+          description="Aguardando análise (filtradas)"
           iconClassName="text-foreground border-border"
         />
       </div>
@@ -267,10 +243,10 @@ export default function Index() {
                         <Badge
                           variant="secondary"
                           className={`
-                            ${app.status === 'pendente' ? 'bg-accent/10 text-accent border-accent/20' : ''}
-                            ${app.status === 'negado' ? 'bg-destructive/10 text-destructive border-destructive/20' : ''}
-                            ${app.status === 'aprovado' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : ''}
-                          `}
+                          ${app.status === 'pendente' ? 'bg-accent/10 text-accent border-accent/20' : ''}
+                          ${app.status === 'negado' ? 'bg-destructive/10 text-destructive border-destructive/20' : ''}
+                          ${app.status === 'aprovado' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : ''}
+                        `}
                         >
                           {app.status.charAt(0).toUpperCase() + app.status.slice(1)}
                         </Badge>
