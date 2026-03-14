@@ -8,6 +8,7 @@ import Reports from './pages/Reports'
 import Settings from './pages/Settings'
 import AdminUsers from './pages/AdminUsers'
 import FinanceiroClientes from './pages/financeiro/FinanceiroClientes'
+import FinanceiroInvestidores from './pages/financeiro/FinanceiroInvestidores'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 import Onboarding from './pages/Onboarding'
@@ -24,14 +25,12 @@ const App = () => (
         <Toaster />
         <Sonner />
         <Routes>
-          {/* Standalone Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/pending-approval" element={<PendingApproval />} />
           <Route path="/update-password" element={<UpdatePassword />} />
           <Route path="/onboarding" element={<Onboarding />} />
 
-          {/* Dashboard Routes wrapped in Layout */}
           <Route element={<Layout />}>
             <Route path="/" element={<Index />} />
             <Route path="/dashboard" element={<Navigate to="/" replace />} />
@@ -40,6 +39,7 @@ const App = () => (
             <Route path="/settings" element={<Settings />} />
             <Route path="/admin/users" element={<AdminUsers />} />
             <Route path="/financeiro/clientes" element={<FinanceiroClientes />} />
+            <Route path="/financeiro/investidores" element={<FinanceiroInvestidores />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />

@@ -37,13 +37,15 @@ Deno.serve(async (req: Request) => {
     const { action } = body
 
     if (action === 'create') {
-      const { email, nome, role, cpf, valor_credito_aprovado } = body.data
+      const { email, nome, role, cpf, valor_credito_aprovado, investimento_data } = body.data
 
-      if (caller?.role === 'financeiro' && role.toLowerCase() !== 'cliente') {
-        throw new Error('Financeiro can only create clients.')
+      if (
+        caller?.role === 'financeiro' &&
+        !['cliente', 'investidor'].includes(role.toLowerCase())
+      ) {
+        throw new Error('Financeiro can only create clients or investors.')
       }
 
-      // Generate 12-char random password satisfying complexity requirements
       const generatedPassword = crypto.randomUUID().replace(/-/g, '').slice(0, 9) + 'A1!'
 
       const { data: authData, error: createError } = await supabaseAdmin.auth.admin.createUser({
@@ -60,7 +62,9 @@ Deno.serve(async (req: Request) => {
         .eq('nome', role.toLowerCase())
         .maybeSingle()
 
-      const targetStatus = role.toLowerCase() === 'cliente' ? 'ativo' : 'pendente'
+      const targetStatus = ['cliente', 'investidor'].includes(role.toLowerCase())
+        ? 'ativo'
+        : 'pendente'
 
       const { error: insertError } = await supabaseAdmin.from('usuarios').insert({
         id: authData.user.id,
@@ -74,6 +78,22 @@ Deno.serve(async (req: Request) => {
       })
       if (insertError) throw insertError
 
+      if (role.toLowerCase() === 'investidor' && investimento_data) {
+        const { operacao_id, valor_investido, percentual_retorno, data_investimento } =
+          investimento_data
+        if (operacao_id) {
+          const { error: invError } = await supabaseAdmin.from('investimentos').insert({
+            usuario_id: authData.user.id,
+            operacao_id,
+            valor_investido,
+            percentual_retorno,
+            data_investimento,
+            status: 'ativo',
+          })
+          if (invError) throw invError
+        }
+      }
+
       return new Response(
         JSON.stringify({ success: true, user: authData.user, password: generatedPassword }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
@@ -82,7 +102,6 @@ Deno.serve(async (req: Request) => {
 
     if (action === 'approve') {
       const { userId } = body
-
       const { data: targetUser } = await supabaseAdmin
         .from('usuarios')
         .select('*')
@@ -113,7 +132,7 @@ Deno.serve(async (req: Request) => {
     if (action === 'update') {
       const {
         userId,
-        data: { nome, role, cpf, valor_credito_aprovado },
+        data: { nome, role, cpf, valor_credito_aprovado, investimento_data },
       } = body
 
       if (caller?.role === 'financeiro') {
@@ -122,7 +141,8 @@ Deno.serve(async (req: Request) => {
           .select('role')
           .eq('id', userId)
           .single()
-        if (target?.role !== 'cliente') throw new Error('Financeiro can only update clients.')
+        if (target?.role !== 'cliente' && target?.role !== 'investidor')
+          throw new Error('Financeiro can only update clients or investors.')
       }
 
       const updatePayload: any = { nome }
@@ -147,6 +167,38 @@ Deno.serve(async (req: Request) => {
         .eq('id', userId)
       if (updateDbError) throw updateDbError
 
+      if (investimento_data) {
+        const {
+          operacao_id,
+          valor_investido,
+          percentual_retorno,
+          data_investimento,
+          id: investimento_id,
+        } = investimento_data
+        if (investimento_id) {
+          const { error: invError } = await supabaseAdmin
+            .from('investimentos')
+            .update({
+              operacao_id,
+              valor_investido,
+              percentual_retorno,
+              data_investimento,
+            })
+            .eq('id', investimento_id)
+          if (invError) throw invError
+        } else if (operacao_id) {
+          const { error: invError } = await supabaseAdmin.from('investimentos').insert({
+            usuario_id: userId,
+            operacao_id,
+            valor_investido,
+            percentual_retorno,
+            data_investimento,
+            status: 'ativo',
+          })
+          if (invError) throw invError
+        }
+      }
+
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
@@ -159,7 +211,6 @@ Deno.serve(async (req: Request) => {
         .update({ status: 'inativo' })
         .eq('id', userId)
       if (updateDbError) throw updateDbError
-
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
@@ -172,7 +223,6 @@ Deno.serve(async (req: Request) => {
         .update({ status: 'ativo' })
         .eq('id', userId)
       if (updateDbError) throw updateDbError
-
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })

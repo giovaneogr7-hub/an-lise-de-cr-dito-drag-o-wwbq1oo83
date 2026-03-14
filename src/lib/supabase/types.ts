@@ -188,6 +188,7 @@ export type Database = {
           role_id: string | null
           status: string | null
           telefone: string | null
+          valor_credito_aprovado: number | null
         }
         Insert: {
           cpf?: string | null
@@ -199,6 +200,7 @@ export type Database = {
           role_id?: string | null
           status?: string | null
           telefone?: string | null
+          valor_credito_aprovado?: number | null
         }
         Update: {
           cpf?: string | null
@@ -210,6 +212,7 @@ export type Database = {
           role_id?: string | null
           status?: string | null
           telefone?: string | null
+          valor_credito_aprovado?: number | null
         }
         Relationships: [
           {
@@ -411,6 +414,7 @@ export const Constants = {
 //   role: text (nullable)
 //   role_id: uuid (nullable)
 //   status: text (nullable, default: 'pendente'::text)
+//   valor_credito_aprovado: numeric (nullable, default: 0)
 
 // --- CONSTRAINTS ---
 // Table: investimentos
@@ -435,9 +439,9 @@ export const Constants = {
 //   FOREIGN KEY solicitacoes_credito_usuario_id_fkey: FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
 // Table: usuarios
 //   PRIMARY KEY usuarios_pkey: PRIMARY KEY (id)
-//   CHECK usuarios_role_check: CHECK ((role = ANY (ARRAY['admin'::text, 'analista'::text, 'cliente'::text])))
+//   CHECK usuarios_role_check: CHECK ((role = ANY (ARRAY['admin'::text, 'analista'::text, 'cliente'::text, 'financeiro'::text, 'cobrador'::text, 'investidor'::text])))
 //   FOREIGN KEY usuarios_role_id_fkey: FOREIGN KEY (role_id) REFERENCES roles(id)
-//   CHECK usuarios_status_check: CHECK ((status = ANY (ARRAY['pendente'::text, 'aprovado'::text, 'negado'::text])))
+//   CHECK usuarios_status_check: CHECK ((status = ANY (ARRAY['pendente'::text, 'aprovado'::text, 'negado'::text, 'ativo'::text, 'inativo'::text])))
 
 // --- DATABASE FUNCTIONS ---
 // FUNCTION check_admin_status_update()
