@@ -66,22 +66,36 @@ export default function Login() {
         return
       }
 
-      if (!['ativo', 'aprovado'].includes(status)) {
-        if (['financeiro', 'cobrador'].includes(role) && status === 'pendente') {
+      if (role === 'financeiro' || role === 'cobrador') {
+        if (status === 'ativo' || status === 'aprovado') {
+          navigate('/')
+        } else if (status === 'pendente') {
           signOut().then(() =>
             setLoginError('Sua conta está aguardando aprovação do administrador'),
           )
-          return
-        }
-
-        if (['cliente', 'investidor'].includes(role) && status === 'inativo') {
+        } else if (status === 'inativo') {
           signOut().then(() => setLoginError('Sua conta foi desativada'))
-          return
+        } else {
+          navigate('/pending-approval')
         }
+        return
+      }
 
-        navigate('/pending-approval')
-      } else {
+      if (role === 'cliente' || role === 'investidor') {
+        if (status === 'ativo' || status === 'aprovado') {
+          navigate('/')
+        } else if (status === 'inativo') {
+          signOut().then(() => setLoginError('Sua conta foi desativada'))
+        } else {
+          navigate('/pending-approval')
+        }
+        return
+      }
+
+      if (status === 'ativo' || status === 'aprovado') {
         navigate('/')
+      } else {
+        navigate('/pending-approval')
       }
     }
   }, [user, profile, loading, navigate, signOut])
@@ -133,27 +147,44 @@ export default function Login() {
           return
         }
 
-        if (!['ativo', 'aprovado'].includes(status)) {
-          if (['financeiro', 'cobrador'].includes(role) && status === 'pendente') {
+        if (role === 'financeiro' || role === 'cobrador') {
+          if (status === 'ativo' || status === 'aprovado') {
+            toast({ title: 'Acesso Autorizado', description: 'Bem-vindo ao ÚLTIMO DRAGÃO.' })
+            navigate('/')
+          } else if (status === 'pendente') {
             setLoginError('Sua conta está aguardando aprovação do administrador')
             await signOut()
             setIsLoading(false)
-            return
-          }
-
-          if (['cliente', 'investidor'].includes(role) && status === 'inativo') {
+          } else if (status === 'inativo') {
             setLoginError('Sua conta foi desativada')
             await signOut()
             setIsLoading(false)
-            return
+          } else {
+            navigate('/pending-approval')
           }
-
-          navigate('/pending-approval')
           return
         }
 
-        toast({ title: 'Acesso Autorizado', description: 'Bem-vindo ao ÚLTIMO DRAGÃO.' })
-        navigate('/')
+        if (role === 'cliente' || role === 'investidor') {
+          if (status === 'ativo' || status === 'aprovado') {
+            toast({ title: 'Acesso Autorizado', description: 'Bem-vindo ao ÚLTIMO DRAGÃO.' })
+            navigate('/')
+          } else if (status === 'inativo') {
+            setLoginError('Sua conta foi desativada')
+            await signOut()
+            setIsLoading(false)
+          } else {
+            navigate('/pending-approval')
+          }
+          return
+        }
+
+        if (status === 'ativo' || status === 'aprovado') {
+          toast({ title: 'Acesso Autorizado', description: 'Bem-vindo ao ÚLTIMO DRAGÃO.' })
+          navigate('/')
+        } else {
+          navigate('/pending-approval')
+        }
         return
       }
     }
