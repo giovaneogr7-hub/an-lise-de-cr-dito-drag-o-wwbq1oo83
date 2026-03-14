@@ -7,6 +7,7 @@ import Analysis from './pages/Analysis'
 import Reports from './pages/Reports'
 import Settings from './pages/Settings'
 import AdminUsers from './pages/AdminUsers'
+import FinanceiroClientes from './pages/financeiro/FinanceiroClientes'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 import Onboarding from './pages/Onboarding'
@@ -38,6 +39,7 @@ const App = () => (
             <Route path="/reports" element={<Reports />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/admin/users" element={<AdminUsers />} />
+            <Route path="/financeiro/clientes" element={<FinanceiroClientes />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />

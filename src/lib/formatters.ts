@@ -22,6 +22,14 @@ export const maskCurrency = (value: string) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(amount)
 }
 
+export const parseCurrency = (value: string | number): number => {
+  if (typeof value === 'number') return value
+  if (!value) return 0
+  const num = value.replace(/\D/g, '')
+  if (!num) return 0
+  return parseInt(num, 10) / 100
+}
+
 export const maskDate = (value: string) => {
   let v = value.replace(/\D/g, '')
   if (v.length > 8) v = v.slice(0, 8)

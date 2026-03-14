@@ -23,6 +23,9 @@ export function AppSidebar() {
     { title: 'Análise de Crédito', icon: ShieldCheck, url: '/analysis' },
     { title: 'Relatórios', icon: PieChart, url: '/reports' },
     ...(profile?.role === 'admin' ? [{ title: 'Usuários', icon: Users, url: '/admin/users' }] : []),
+    ...(profile?.role === 'financeiro'
+      ? [{ title: 'Gestão de Clientes', icon: Users, url: '/financeiro/clientes' }]
+      : []),
     { title: 'Configurações', icon: Settings, url: '/settings' },
   ]
 

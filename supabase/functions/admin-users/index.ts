@@ -30,18 +30,25 @@ Deno.serve(async (req: Request) => {
       .select('role')
       .eq('id', user.id)
       .maybeSingle()
-    if (caller?.role !== 'admin') throw new Error('Forbidden: Admins only')
+    if (caller?.role !== 'admin' && caller?.role !== 'financeiro')
+      throw new Error('Forbidden: Insufficient permissions')
 
     const body = await req.json()
     const { action } = body
 
     if (action === 'create') {
-      const { email, nome, role } = body.data
+      const { email, nome, role, cpf, valor_credito_aprovado } = body.data
 
-      const dummyPassword = Math.random().toString(36).slice(-12) + 'A1!'
+      if (caller?.role === 'financeiro' && role.toLowerCase() !== 'cliente') {
+        throw new Error('Financeiro can only create clients.')
+      }
+
+      // Generate 12-char random password satisfying complexity requirements
+      const generatedPassword = crypto.randomUUID().replace(/-/g, '').slice(0, 9) + 'A1!'
+
       const { data: authData, error: createError } = await supabaseAdmin.auth.admin.createUser({
         email,
-        password: dummyPassword,
+        password: generatedPassword,
         email_confirm: true,
         user_metadata: { force_password_change: true },
       })
@@ -53,19 +60,24 @@ Deno.serve(async (req: Request) => {
         .eq('nome', role.toLowerCase())
         .maybeSingle()
 
+      const targetStatus = role.toLowerCase() === 'cliente' ? 'ativo' : 'pendente'
+
       const { error: insertError } = await supabaseAdmin.from('usuarios').insert({
         id: authData.user.id,
         email,
         nome,
         role: role.toLowerCase(),
         role_id: roleData?.id || null,
-        status: 'pendente',
+        status: targetStatus,
+        cpf: cpf || null,
+        valor_credito_aprovado: valor_credito_aprovado || 0,
       })
       if (insertError) throw insertError
 
-      return new Response(JSON.stringify({ success: true, user: authData.user }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      return new Response(
+        JSON.stringify({ success: true, user: authData.user, password: generatedPassword }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
     }
 
     if (action === 'approve') {
@@ -78,7 +90,7 @@ Deno.serve(async (req: Request) => {
         .maybeSingle()
       if (!targetUser) throw new Error('User not found')
 
-      const newPassword = Math.random().toString(36).slice(-10) + 'X9#'
+      const newPassword = crypto.randomUUID().replace(/-/g, '').slice(0, 9) + 'X9#'
 
       const { error: updateAuthError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
         password: newPassword,
@@ -101,21 +113,37 @@ Deno.serve(async (req: Request) => {
     if (action === 'update') {
       const {
         userId,
-        data: { nome, role },
+        data: { nome, role, cpf, valor_credito_aprovado },
       } = body
-      const { data: roleData } = await supabaseAdmin
-        .from('roles')
-        .select('id')
-        .eq('nome', role.toLowerCase())
-        .maybeSingle()
+
+      if (caller?.role === 'financeiro') {
+        const { data: target } = await supabaseAdmin
+          .from('usuarios')
+          .select('role')
+          .eq('id', userId)
+          .single()
+        if (target?.role !== 'cliente') throw new Error('Financeiro can only update clients.')
+      }
+
+      const updatePayload: any = { nome }
+
+      if (role) {
+        const { data: roleData } = await supabaseAdmin
+          .from('roles')
+          .select('id')
+          .eq('nome', role.toLowerCase())
+          .maybeSingle()
+        updatePayload.role = role.toLowerCase()
+        updatePayload.role_id = roleData?.id || null
+      }
+
+      if (cpf !== undefined) updatePayload.cpf = cpf
+      if (valor_credito_aprovado !== undefined)
+        updatePayload.valor_credito_aprovado = valor_credito_aprovado
 
       const { error: updateDbError } = await supabaseAdmin
         .from('usuarios')
-        .update({
-          nome,
-          role: role.toLowerCase(),
-          role_id: roleData?.id || null,
-        })
+        .update(updatePayload)
         .eq('id', userId)
       if (updateDbError) throw updateDbError
 
@@ -129,6 +157,19 @@ Deno.serve(async (req: Request) => {
       const { error: updateDbError } = await supabaseAdmin
         .from('usuarios')
         .update({ status: 'inativo' })
+        .eq('id', userId)
+      if (updateDbError) throw updateDbError
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (action === 'activate') {
+      const { userId } = body
+      const { error: updateDbError } = await supabaseAdmin
+        .from('usuarios')
+        .update({ status: 'ativo' })
         .eq('id', userId)
       if (updateDbError) throw updateDbError
 
