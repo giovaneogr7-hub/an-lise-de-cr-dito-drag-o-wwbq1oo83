@@ -1,5 +1,5 @@
-import { BarChart3, LayoutDashboard, Settings, ShieldCheck } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
+import { LayoutDashboard, FileText, Settings, PieChart, ShieldCheck } from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -11,56 +11,60 @@ import {
   SidebarMenuItem,
   SidebarHeader,
 } from '@/components/ui/sidebar'
-import { cn } from '@/lib/utils'
+import logoImg from '@/assets/40409577-9054-4c9f-af12-2c8c43626167-a0a47.jpeg'
 
-const items = [
-  { title: 'Dashboard', url: '/', icon: LayoutDashboard },
-  { title: 'Análise de Crédito', url: '/analysis', icon: ShieldCheck },
-  { title: 'Relatórios', url: '/reports', icon: BarChart3 },
-  { title: 'Configurações', url: '/settings', icon: Settings },
+const menuItems = [
+  { title: 'Dashboard', icon: LayoutDashboard, url: '/' },
+  { title: 'Análise de Crédito', icon: ShieldCheck, url: '/analysis' },
+  { title: 'Relatórios', icon: PieChart, url: '/reports' },
+  { title: 'Configurações', icon: Settings, url: '/settings' },
 ]
 
 export function AppSidebar() {
   const location = useLocation()
 
   return (
-    <Sidebar className="border-r border-border/50 bg-glass">
-      <SidebarHeader className="p-4 flex items-center justify-center border-b border-border/50">
-        <div className="flex items-center gap-3">
-          <div className="relative w-8 h-8 flex items-center justify-center bg-black rounded-lg border border-primary/50">
-            {/* Abstract Dragon Eye / Core Logo */}
-            <div className="w-4 h-4 bg-primary rounded-sm transform rotate-45 flex items-center justify-center">
-              <div className="w-1.5 h-1.5 bg-accent rounded-full animate-breathing-eye" />
-            </div>
+    <Sidebar
+      variant="inset"
+      className="border-r border-white/5 bg-black/50 backdrop-blur-xl text-white"
+    >
+      <SidebarHeader className="border-b border-white/5 p-4 lg:py-5">
+        <Link
+          to="/"
+          className="flex items-center gap-4 px-2 transition-opacity hover:opacity-80 group"
+        >
+          <div className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-amber-500/40 bg-black shadow-[0_0_15px_rgba(245,158,11,0.2)] transition-transform duration-300 group-hover:scale-105">
+            <img src={logoImg} alt="Dragão Crédito Logo" className="h-full w-full object-cover" />
           </div>
-          <span className="font-display font-bold text-lg tracking-wide text-foreground">
-            DRAGÃO
-          </span>
-        </div>
+          <div className="flex flex-col">
+            <span className="text-base font-bold tracking-widest text-amber-500">DRAGÃO</span>
+            <span className="text-xs font-medium text-white/50">Análise Premium</span>
+          </div>
+        </Link>
       </SidebarHeader>
-      <SidebarContent>
+
+      <SidebarContent className="pt-4">
         <SidebarGroup>
-          <SidebarGroupLabel className="text-muted-foreground uppercase tracking-widest text-[10px] mt-4">
-            Menu Principal
+          <SidebarGroupLabel className="text-xs font-semibold tracking-wider text-white/40 mb-2">
+            MENU PRINCIPAL
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu className="gap-2 mt-2">
-              {items.map((item) => {
-                const isActive = location.pathname === item.url
+            <SidebarMenu className="space-y-1">
+              {menuItems.map((item) => {
+                const isActive =
+                  location.pathname === item.url ||
+                  (item.url !== '/' && location.pathname.startsWith(item.url))
+
                 return (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild isActive={isActive} tooltip={item.title}>
-                      <Link
-                        to={item.url}
-                        className={cn(
-                          'transition-all duration-300 rounded-lg px-3 py-2 text-sm font-medium',
-                          isActive
-                            ? 'bg-primary/10 text-primary border border-primary/30 shadow-[0_0_15px_rgba(212,175,55,0.1)]'
-                            : 'text-muted-foreground hover:bg-white/5 hover:text-foreground',
-                        )}
-                      >
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive}
+                      className="h-10 px-3 transition-colors hover:bg-white/10 hover:text-white data-[active=true]:bg-amber-500/10 data-[active=true]:text-amber-500 data-[active=true]:font-medium"
+                    >
+                      <Link to={item.url} className="flex items-center gap-3">
                         <item.icon
-                          className={cn('w-4 h-4', isActive ? 'text-primary' : 'opacity-70')}
+                          className={`h-4 w-4 ${isActive ? 'text-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.3)] rounded-full' : 'text-white/60'}`}
                         />
                         <span>{item.title}</span>
                       </Link>

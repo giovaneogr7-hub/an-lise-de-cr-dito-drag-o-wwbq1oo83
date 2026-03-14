@@ -1,130 +1,152 @@
 import { useState } from 'react'
-import { useForm, FormProvider } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { ShieldCheck } from 'lucide-react'
-import { onboardingSchema, stepFields, type OnboardingData } from '@/lib/onboarding-schema'
-import { Progress } from '@/components/ui/progress'
-import { Card, CardContent } from '@/components/ui/card'
-import { StepPersonal } from '@/components/onboarding/StepPersonal'
-import { StepDocuments } from '@/components/onboarding/StepDocuments'
-import { StepBanking } from '@/components/onboarding/StepBanking'
-import { StepIncome } from '@/components/onboarding/StepIncome'
-import { StepLegal } from '@/components/onboarding/StepLegal'
-import { WizardNav } from '@/components/onboarding/WizardNav'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-
-const STEPS_COUNT = 5
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { ShieldCheck, ArrowRight, Zap, CreditCard } from 'lucide-react'
+import logoImg from '@/assets/40409577-9054-4c9f-af12-2c8c43626167-a0a47.jpeg'
 
 export default function Onboarding() {
-  const [currentStep, setCurrentStep] = useState(0)
-  const [isSuccess, setIsSuccess] = useState(false)
+  const navigate = useNavigate()
+  const [step, setStep] = useState(1)
 
-  const form = useForm<OnboardingData>({
-    resolver: zodResolver(onboardingSchema),
-    mode: 'onChange',
-  })
-
-  const handleNext = async () => {
-    const fieldsToValidate = stepFields[currentStep]
-    const isValid = await form.trigger(fieldsToValidate)
-
-    if (isValid) {
-      if (currentStep === STEPS_COUNT - 1) {
-        setIsSuccess(true)
-      } else {
-        setCurrentStep((prev) => prev + 1)
-      }
+  const handleNext = () => {
+    if (step < 3) {
+      setStep(step + 1)
+    } else {
+      navigate('/')
     }
   }
 
-  const handlePrev = () => {
-    setCurrentStep((prev) => Math.max(0, prev - 1))
-  }
-
-  const progressPercentage = ((currentStep + 1) / STEPS_COUNT) * 100
-
-  if (isSuccess) {
-    return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-        <Card className="w-full max-w-lg border-gold-glow bg-card/80 backdrop-blur-xl animate-in zoom-in-95 duration-500">
-          <CardContent className="pt-10 pb-8 px-8 text-center space-y-6">
-            <div className="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto border border-emerald-500/30">
-              <ShieldCheck className="w-10 h-10 text-emerald-400" />
-            </div>
-            <h1 className="text-3xl font-display font-bold text-foreground">Tudo Certo!</h1>
-            <p className="text-muted-foreground text-lg">
-              Suas informações foram enviadas com sucesso. Nossa inteligência artificial já está
-              analisando seu perfil.
-            </p>
-            <div className="pt-4">
-              <Button
-                asChild
-                className="bg-primary text-black hover:bg-accent hover:text-white transition-colors duration-300 w-full sm:w-auto px-8"
-              >
-                <Link to="/">Acessar Dashboard</Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
   return (
-    <div className="min-h-screen bg-background flex flex-col relative overflow-hidden">
-      {/* Background ambient glow */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
-
-      {/* Header */}
-      <header className="w-full p-6 flex justify-center items-center z-10">
-        <div className="flex items-center gap-3">
-          <div className="relative w-10 h-10 flex items-center justify-center bg-black rounded-xl border border-primary/50 shadow-[0_0_15px_rgba(212,175,55,0.2)]">
-            <div className="w-5 h-5 bg-primary rounded-sm transform rotate-45 flex items-center justify-center">
-              <div className="w-2 h-2 bg-accent rounded-full animate-breathing-eye" />
-            </div>
+    <div className="min-h-screen bg-black text-white flex flex-col font-sans">
+      <header className="absolute top-0 left-0 right-0 p-6 flex justify-between items-center z-20">
+        <Link to="/" className="flex items-center gap-4 transition-opacity hover:opacity-80 group">
+          <div className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-amber-500/40 bg-black shadow-[0_0_20px_rgba(245,158,11,0.25)] transition-transform duration-500 group-hover:scale-105">
+            <img src={logoImg} alt="Dragão Crédito Logo" className="h-full w-full object-cover" />
           </div>
-          <span className="font-display font-bold text-2xl tracking-widest text-foreground">
-            DRAGÃO
-          </span>
-        </div>
+          <div className="flex flex-col">
+            <span className="text-xl font-bold tracking-widest text-amber-500 drop-shadow-[0_0_8px_rgba(245,158,11,0.3)]">
+              DRAGÃO
+            </span>
+            <span className="text-sm font-medium text-white/60">Análise Premium</span>
+          </div>
+        </Link>
+        <Button
+          variant="ghost"
+          asChild
+          className="text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+        >
+          <Link to="/">Pular</Link>
+        </Button>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1 flex items-center justify-center p-4 sm:p-6 z-10">
-        <Card className="w-full max-w-xl border-gold-glow bg-card/80 backdrop-blur-xl shadow-2xl relative overflow-hidden">
-          {/* Progress Bar Area */}
-          <div className="bg-black/60 p-6 border-b border-white/5 space-y-4">
-            <div className="flex justify-between text-sm font-medium text-muted-foreground">
-              <span>
-                Etapa {currentStep + 1} de {STEPS_COUNT}
-              </span>
-              <span className="text-accent">{Math.round(progressPercentage)}%</span>
-            </div>
-            {/* Using a custom wrapper to override the indicator color to accent (blue) */}
-            <div className="[&_[data-radix-progress-indicator]]:bg-accent">
-              <Progress value={progressPercentage} className="h-2 bg-white/5" />
-            </div>
-          </div>
+      <main className="flex-1 flex items-center justify-center p-6 relative overflow-hidden">
+        {/* Abstract Tech Background Elements */}
+        <div className="absolute top-1/4 -left-64 w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[120px] mix-blend-screen pointer-events-none" />
+        <div className="absolute bottom-1/4 -right-64 w-[600px] h-[600px] bg-amber-500/10 rounded-full blur-[120px] mix-blend-screen pointer-events-none" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none opacity-30" />
 
-          <CardContent className="p-6 sm:p-8">
-            <FormProvider {...form}>
-              <form onSubmit={(e) => e.preventDefault()}>
-                {currentStep === 0 && <StepPersonal />}
-                {currentStep === 1 && <StepDocuments />}
-                {currentStep === 2 && <StepBanking />}
-                {currentStep === 3 && <StepIncome />}
-                {currentStep === 4 && <StepLegal />}
+        <div className="w-full max-w-lg z-10 animate-fade-in-up">
+          <Card className="border-white/10 bg-black/40 backdrop-blur-2xl shadow-2xl overflow-hidden rounded-2xl">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600/80 via-amber-500 to-blue-600/80" />
+            <CardHeader className="text-center pb-2 pt-10">
+              <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/20 shadow-[0_0_30px_rgba(245,158,11,0.15)]">
+                {step === 1 && (
+                  <Zap className="h-10 w-10 text-amber-500 drop-shadow-[0_0_10px_rgba(245,158,11,0.5)]" />
+                )}
+                {step === 2 && (
+                  <ShieldCheck className="h-10 w-10 text-amber-500 drop-shadow-[0_0_10px_rgba(245,158,11,0.5)]" />
+                )}
+                {step === 3 && (
+                  <CreditCard className="h-10 w-10 text-amber-500 drop-shadow-[0_0_10px_rgba(245,158,11,0.5)]" />
+                )}
+              </div>
+              <CardTitle className="text-3xl font-bold tracking-tight text-white">
+                {step === 1 && 'Bem-vindo ao Dragão'}
+                {step === 2 && 'Segurança Militar'}
+                {step === 3 && 'Análise Instantânea'}
+              </CardTitle>
+              <CardDescription className="text-base mt-3 text-white/60 max-w-sm mx-auto">
+                {step === 1 &&
+                  'A plataforma de análise de crédito mais avançada e rápida do mercado financeiro.'}
+                {step === 2 &&
+                  'Seus dados e de seus clientes protegidos com a mais alta tecnologia de criptografia end-to-end.'}
+                {step === 3 &&
+                  'Decisões de crédito baseadas em IA com respostas precisas em milissegundos.'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-8 pb-8">
+              <div className="flex justify-center gap-3 mb-8">
+                {[1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className={`h-1.5 rounded-full transition-all duration-500 ${
+                      i === step
+                        ? 'w-10 bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]'
+                        : 'w-2 bg-white/20'
+                    }`}
+                  />
+                ))}
+              </div>
 
-                <WizardNav
-                  onNext={handleNext}
-                  onPrev={currentStep > 0 ? handlePrev : undefined}
-                  isLastStep={currentStep === STEPS_COUNT - 1}
-                />
-              </form>
-            </FormProvider>
-          </CardContent>
-        </Card>
+              <div className="min-h-[90px] flex flex-col justify-center">
+                {step === 1 && (
+                  <div className="space-y-4 animate-fade-in">
+                    <div className="space-y-2">
+                      <Label htmlFor="company" className="text-white/80">
+                        Nome da Empresa
+                      </Label>
+                      <Input
+                        id="company"
+                        placeholder="Sua Empresa LTDA"
+                        className="bg-white/5 border-white/10 text-white placeholder:text-white/30 h-12 focus-visible:ring-amber-500/50 transition-colors"
+                      />
+                    </div>
+                  </div>
+                )}
+                {step === 2 && (
+                  <div className="space-y-4 animate-fade-in">
+                    <div className="space-y-2">
+                      <Label htmlFor="api-key" className="text-white/80">
+                        Chave de Integração API
+                      </Label>
+                      <Input
+                        id="api-key"
+                        readOnly
+                        value="sk_test_dragao_59f8e7a2b..."
+                        className="bg-white/5 border-white/10 text-amber-500/80 font-mono h-12 focus-visible:ring-amber-500/50 cursor-default selection:bg-amber-500/30"
+                      />
+                    </div>
+                  </div>
+                )}
+                {step === 3 && (
+                  <div className="flex items-center justify-center p-5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 animate-fade-in">
+                    <ShieldCheck className="h-6 w-6 mr-3" />
+                    <span className="font-semibold text-lg">Sistema pronto para operar</span>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+            <CardFooter className="pb-10">
+              <Button
+                onClick={handleNext}
+                className="w-full bg-amber-500 text-black hover:bg-amber-400 font-bold text-lg h-14 rounded-xl shadow-[0_0_20px_rgba(245,158,11,0.3)] transition-all duration-300 hover:shadow-[0_0_30px_rgba(245,158,11,0.5)] hover:-translate-y-0.5"
+              >
+                {step === 3 ? 'Acessar Dashboard' : 'Continuar'}
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
       </main>
     </div>
   )
