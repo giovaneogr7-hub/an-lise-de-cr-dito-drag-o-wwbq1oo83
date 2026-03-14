@@ -12,6 +12,7 @@ import Onboarding from './pages/Onboarding'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
 import PendingApproval from './pages/PendingApproval'
+import UpdatePassword from './pages/UpdatePassword'
 import { AuthProvider } from '@/hooks/use-auth'
 
 const App = () => (
@@ -25,6 +26,7 @@ const App = () => (
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/pending-approval" element={<PendingApproval />} />
+          <Route path="/update-password" element={<UpdatePassword />} />
           <Route path="/onboarding" element={<Onboarding />} />
 
           {/* Dashboard Routes wrapped in Layout */}

@@ -186,6 +186,7 @@ export type Database = {
           nome: string | null
           role: string | null
           role_id: string | null
+          status: string | null
           telefone: string | null
         }
         Insert: {
@@ -196,6 +197,7 @@ export type Database = {
           nome?: string | null
           role?: string | null
           role_id?: string | null
+          status?: string | null
           telefone?: string | null
         }
         Update: {
@@ -206,6 +208,7 @@ export type Database = {
           nome?: string | null
           role?: string | null
           role_id?: string | null
+          status?: string | null
           telefone?: string | null
         }
         Relationships: [
@@ -407,6 +410,7 @@ export const Constants = {
 //   data_criacao: timestamp with time zone (nullable, default: now())
 //   role: text (nullable)
 //   role_id: uuid (nullable)
+//   status: text (nullable, default: 'pendente'::text)
 
 // --- CONSTRAINTS ---
 // Table: investimentos
@@ -433,3 +437,28 @@ export const Constants = {
 //   PRIMARY KEY usuarios_pkey: PRIMARY KEY (id)
 //   CHECK usuarios_role_check: CHECK ((role = ANY (ARRAY['admin'::text, 'analista'::text, 'cliente'::text])))
 //   FOREIGN KEY usuarios_role_id_fkey: FOREIGN KEY (role_id) REFERENCES roles(id)
+//   CHECK usuarios_status_check: CHECK ((status = ANY (ARRAY['pendente'::text, 'aprovado'::text, 'negado'::text])))
+
+// --- DATABASE FUNCTIONS ---
+// FUNCTION check_admin_status_update()
+//   CREATE OR REPLACE FUNCTION public.check_admin_status_update()
+//    RETURNS trigger
+//    LANGUAGE plpgsql
+//    SECURITY DEFINER
+//   AS $function$
+//   BEGIN
+//       IF NEW.status IS DISTINCT FROM OLD.status THEN
+//           IF NOT EXISTS (
+//               SELECT 1 FROM public.usuarios WHERE id = auth.uid() AND role = 'admin'
+//           ) THEN
+//               RAISE EXCEPTION 'Apenas administradores podem alterar o status do usuário.';
+//           END IF;
+//       END IF;
+//       RETURN NEW;
+//   END;
+//   $function$
+//
+
+// --- TRIGGERS ---
+// Table: usuarios
+//   enforce_admin_status_update: CREATE TRIGGER enforce_admin_status_update BEFORE UPDATE ON public.usuarios FOR EACH ROW EXECUTE FUNCTION check_admin_status_update()

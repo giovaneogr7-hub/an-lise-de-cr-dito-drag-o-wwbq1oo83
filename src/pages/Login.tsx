@@ -48,7 +48,7 @@ const recoverySchema = z.object({
 export default function Login() {
   const navigate = useNavigate()
   const { toast } = useToast()
-  const { signIn, user, profile, loading } = useAuth()
+  const { signIn, resetPassword, user, profile, loading } = useAuth()
 
   const [isLoading, setIsLoading] = useState(false)
   const [loginError, setLoginError] = useState('')
@@ -87,9 +87,7 @@ export default function Login() {
     const { error } = await signIn(values.email, values.password)
 
     if (error) {
-      setLoginError(
-        'Credenciais inválidas. Por favor, verifique seu email e senha e tente novamente.',
-      )
+      setLoginError(error.message)
       setIsLoading(false)
       return
     }
@@ -103,7 +101,16 @@ export default function Login() {
   }
 
   const onRecoverySubmit = async (values: z.infer<typeof recoverySchema>) => {
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    const { error } = await resetPassword(values.email)
+
+    if (error) {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível enviar o e-mail de recuperação. Tente novamente.',
+        variant: 'destructive',
+      })
+      return
+    }
 
     toast({
       title: 'Instruções enviadas',

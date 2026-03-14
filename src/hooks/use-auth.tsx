@@ -20,6 +20,8 @@ interface AuthContextType {
   signUp: (email: string, password: string) => Promise<AuthResponse>
   signIn: (email: string, password: string) => Promise<{ error: any }>
   signOut: () => Promise<{ error: any }>
+  resetPassword: (email: string) => Promise<{ error: any }>
+  updatePassword: (password: string) => Promise<{ error: any }>
   refreshProfile: () => Promise<void>
   loading: boolean
 }
@@ -46,15 +48,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      setAuthLoading(false)
+      // Prevent UI deadlocks using setTimeout for state transitions
+      setTimeout(() => {
+        setSession(session)
+        setUser(session?.user ?? null)
+        setAuthLoading(false)
+      }, 0)
     })
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      setAuthLoading(false)
+      setTimeout(() => {
+        setSession(session)
+        setUser(session?.user ?? null)
+        setAuthLoading(false)
+      }, 0)
     })
 
     return () => subscription.unsubscribe()
@@ -62,8 +69,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (!user) {
-      setProfile(null)
-      setProfileLoading(false)
+      setTimeout(() => {
+        setProfile(null)
+        setProfileLoading(false)
+      }, 0)
       return
     }
 
@@ -74,28 +83,62 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       .eq('id', user.id)
       .single()
       .then(({ data }) => {
-        setProfile(data)
-        setProfileLoading(false)
+        setTimeout(() => {
+          setProfile(data)
+          setProfileLoading(false)
+        }, 0)
       })
   }, [user?.id])
 
   const refreshProfile = async () => {
     if (!user) return
     const { data } = await supabase.from('usuarios').select('*').eq('id', user.id).single()
-    setProfile(data)
+    setTimeout(() => {
+      setProfile(data)
+    }, 0)
   }
 
-  const signUp = async (email: string, password: string) => {
-    return await supabase.auth.signUp({
+  const signUp = async (email: string, password: string): Promise<AuthResponse> => {
+    const response = await supabase.auth.signUp({
       email,
       password,
       options: { emailRedirectTo: `${window.location.origin}/` },
     })
+
+    if (response.error) {
+      let friendlyMessage = 'Ocorreu um erro ao realizar o cadastro.'
+      if (response.error.message.includes('User already registered')) {
+        friendlyMessage = 'Este e-mail já está cadastrado.'
+      }
+      return {
+        data: response.data,
+        error: { ...response.error, message: friendlyMessage } as any,
+      }
+    }
+
+    return response
   }
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
-    return { error }
+
+    if (error) {
+      let friendlyMessage = 'Ocorreu um erro ao fazer login. Tente novamente.'
+
+      if (error.message.includes('Invalid login credentials')) {
+        friendlyMessage = 'E-mail ou senha incorretos.'
+      } else if (error.message.includes('Email not confirmed')) {
+        friendlyMessage =
+          'Seu e-mail ainda não foi confirmado. Por favor, verifique sua caixa de entrada.'
+      } else if (error.message.includes('User not found')) {
+        friendlyMessage = 'E-mail não encontrado.'
+      } else if (error.message.includes('Invalid password')) {
+        friendlyMessage = 'Senha incorreta.'
+      }
+
+      return { error: { ...error, message: friendlyMessage } }
+    }
+    return { error: null }
   }
 
   const signOut = async () => {
@@ -103,9 +146,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return { error }
   }
 
+  const resetPassword = async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/update-password`,
+    })
+    return { error }
+  }
+
+  const updatePassword = async (password: string) => {
+    const { error } = await supabase.auth.updateUser({ password })
+    return { error }
+  }
+
   return (
     <AuthContext.Provider
-      value={{ user, session, profile, signUp, signIn, signOut, refreshProfile, loading }}
+      value={{
+        user,
+        session,
+        profile,
+        signUp,
+        signIn,
+        signOut,
+        resetPassword,
+        updatePassword,
+        refreshProfile,
+        loading,
+      }}
     >
       {children}
     </AuthContext.Provider>
