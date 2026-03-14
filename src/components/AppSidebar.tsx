@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, FileText, Settings, PieChart, ShieldCheck } from 'lucide-react'
+import { LayoutDashboard, Settings, PieChart, ShieldCheck, Users } from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -12,16 +12,19 @@ import {
   SidebarHeader,
 } from '@/components/ui/sidebar'
 import logoImg from '@/assets/40409577-9054-4c9f-af12-2c8c43626167-a0a47.jpeg'
-
-const menuItems = [
-  { title: 'Dashboard', icon: LayoutDashboard, url: '/' },
-  { title: 'Análise de Crédito', icon: ShieldCheck, url: '/analysis' },
-  { title: 'Relatórios', icon: PieChart, url: '/reports' },
-  { title: 'Configurações', icon: Settings, url: '/settings' },
-]
+import { useAuth } from '@/hooks/use-auth'
 
 export function AppSidebar() {
   const location = useLocation()
+  const { profile } = useAuth()
+
+  const menuItems = [
+    { title: 'Dashboard', icon: LayoutDashboard, url: '/' },
+    { title: 'Análise de Crédito', icon: ShieldCheck, url: '/analysis' },
+    { title: 'Relatórios', icon: PieChart, url: '/reports' },
+    ...(profile?.role === 'admin' ? [{ title: 'Usuários', icon: Users, url: '/admin/users' }] : []),
+    { title: 'Configurações', icon: Settings, url: '/settings' },
+  ]
 
   return (
     <Sidebar
