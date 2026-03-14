@@ -9,6 +9,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      investimentos: {
+        Row: {
+          data_investimento: string | null
+          id: string
+          operacao_id: string
+          percentual_retorno: number
+          status: string
+          usuario_id: string
+          valor_investido: number
+        }
+        Insert: {
+          data_investimento?: string | null
+          id?: string
+          operacao_id: string
+          percentual_retorno: number
+          status: string
+          usuario_id: string
+          valor_investido: number
+        }
+        Update: {
+          data_investimento?: string | null
+          id?: string
+          operacao_id?: string
+          percentual_retorno?: number
+          status?: string
+          usuario_id?: string
+          valor_investido?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'investimentos_operacao_id_fkey'
+            columns: ['operacao_id']
+            isOneToOne: false
+            referencedRelation: 'operacoes'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'investimentos_usuario_id_fkey'
+            columns: ['usuario_id']
+            isOneToOne: false
+            referencedRelation: 'usuarios'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       operacoes: {
         Row: {
           data_liberacao: string | null
@@ -43,6 +88,53 @@ export type Database = {
             referencedColumns: ['id']
           },
         ]
+      }
+      permissoes: {
+        Row: {
+          acao: string
+          id: string
+          recurso: string
+          role_id: string
+        }
+        Insert: {
+          acao: string
+          id?: string
+          recurso: string
+          role_id: string
+        }
+        Update: {
+          acao?: string
+          id?: string
+          recurso?: string
+          role_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'permissoes_role_id_fkey'
+            columns: ['role_id']
+            isOneToOne: false
+            referencedRelation: 'roles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      roles: {
+        Row: {
+          descricao: string | null
+          id: string
+          nome: string
+        }
+        Insert: {
+          descricao?: string | null
+          id?: string
+          nome: string
+        }
+        Update: {
+          descricao?: string | null
+          id?: string
+          nome?: string
+        }
+        Relationships: []
       }
       solicitacoes_credito: {
         Row: {
@@ -93,6 +185,7 @@ export type Database = {
           id: string
           nome: string | null
           role: string | null
+          role_id: string | null
           telefone: string | null
         }
         Insert: {
@@ -102,6 +195,7 @@ export type Database = {
           id?: string
           nome?: string | null
           role?: string | null
+          role_id?: string | null
           telefone?: string | null
         }
         Update: {
@@ -111,9 +205,18 @@ export type Database = {
           id?: string
           nome?: string | null
           role?: string | null
+          role_id?: string | null
           telefone?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: 'usuarios_role_id_fkey'
+            columns: ['role_id']
+            isOneToOne: false
+            referencedRelation: 'roles'
+            referencedColumns: ['id']
+          },
+        ]
       }
     }
     Views: {
@@ -262,6 +365,14 @@ export const Constants = {
 // --- COLUMN TYPES (actual PostgreSQL types) ---
 // Use this to know the real database type when writing migrations.
 // "string" in TypeScript types above may be uuid, text, varchar, timestamptz, etc.
+// Table: investimentos
+//   id: uuid (not null, default: gen_random_uuid())
+//   usuario_id: uuid (not null)
+//   operacao_id: uuid (not null)
+//   valor_investido: numeric (not null)
+//   percentual_retorno: numeric (not null)
+//   data_investimento: timestamp with time zone (nullable, default: now())
+//   status: text (not null)
 // Table: operacoes
 //   id: uuid (not null, default: gen_random_uuid())
 //   solicitacao_id: uuid (not null)
@@ -269,6 +380,15 @@ export const Constants = {
 //   data_liberacao: timestamp with time zone (nullable)
 //   data_vencimento: timestamp with time zone (nullable)
 //   saldo_devedor: numeric (nullable)
+// Table: permissoes
+//   id: uuid (not null, default: gen_random_uuid())
+//   role_id: uuid (not null)
+//   acao: text (not null)
+//   recurso: text (not null)
+// Table: roles
+//   id: uuid (not null, default: gen_random_uuid())
+//   nome: text (not null)
+//   descricao: text (nullable)
 // Table: solicitacoes_credito
 //   id: uuid (not null, default: gen_random_uuid())
 //   usuario_id: uuid (not null)
@@ -286,11 +406,25 @@ export const Constants = {
 //   telefone: text (nullable)
 //   data_criacao: timestamp with time zone (nullable, default: now())
 //   role: text (nullable)
+//   role_id: uuid (nullable)
 
 // --- CONSTRAINTS ---
+// Table: investimentos
+//   FOREIGN KEY investimentos_operacao_id_fkey: FOREIGN KEY (operacao_id) REFERENCES operacoes(id) ON DELETE CASCADE
+//   PRIMARY KEY investimentos_pkey: PRIMARY KEY (id)
+//   CHECK investimentos_status_check: CHECK ((status = ANY (ARRAY['ativo'::text, 'finalizado'::text])))
+//   FOREIGN KEY investimentos_usuario_id_fkey: FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
 // Table: operacoes
 //   PRIMARY KEY operacoes_pkey: PRIMARY KEY (id)
 //   FOREIGN KEY operacoes_solicitacao_id_fkey: FOREIGN KEY (solicitacao_id) REFERENCES solicitacoes_credito(id) ON DELETE CASCADE
+// Table: permissoes
+//   CHECK permissoes_acao_check: CHECK ((acao = ANY (ARRAY['criar'::text, 'ler'::text, 'editar'::text, 'deletar'::text])))
+//   PRIMARY KEY permissoes_pkey: PRIMARY KEY (id)
+//   CHECK permissoes_recurso_check: CHECK ((recurso = ANY (ARRAY['solicitacoes'::text, 'operacoes'::text, 'cobrancas'::text, 'relatorios'::text, 'investimentos'::text])))
+//   FOREIGN KEY permissoes_role_id_fkey: FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE
+// Table: roles
+//   CHECK roles_nome_check: CHECK ((nome = ANY (ARRAY['admin'::text, 'financeiro'::text, 'cobrador'::text, 'investidor'::text, 'cliente'::text])))
+//   PRIMARY KEY roles_pkey: PRIMARY KEY (id)
 // Table: solicitacoes_credito
 //   PRIMARY KEY solicitacoes_credito_pkey: PRIMARY KEY (id)
 //   CHECK solicitacoes_credito_status_check: CHECK ((status = ANY (ARRAY['pendente'::text, 'aprovado'::text, 'negado'::text])))
@@ -298,3 +432,4 @@ export const Constants = {
 // Table: usuarios
 //   PRIMARY KEY usuarios_pkey: PRIMARY KEY (id)
 //   CHECK usuarios_role_check: CHECK ((role = ANY (ARRAY['admin'::text, 'analista'::text, 'cliente'::text])))
+//   FOREIGN KEY usuarios_role_id_fkey: FOREIGN KEY (role_id) REFERENCES roles(id)

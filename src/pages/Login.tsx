@@ -1,14 +1,15 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import { Loader2, ShieldCheck, Lock, Mail, AlertCircle } from 'lucide-react'
+import { Loader2, ShieldCheck, Lock, Mail, AlertCircle, Eye, EyeOff } from 'lucide-react'
 import logoImg from '@/assets/40409577-9054-4c9f-af12-2c8c43626167-a0a47.jpeg'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
+import { useAuth } from '@/hooks/use-auth'
 import {
   Card,
   CardContent,
@@ -47,9 +48,22 @@ const recoverySchema = z.object({
 export default function Login() {
   const navigate = useNavigate()
   const { toast } = useToast()
+  const { signIn, user, profile, loading } = useAuth()
+
   const [isLoading, setIsLoading] = useState(false)
   const [loginError, setLoginError] = useState('')
   const [isRecoveryOpen, setIsRecoveryOpen] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+
+  useEffect(() => {
+    if (!loading && user) {
+      if (profile?.status === 'pendente' || profile?.status === 'negado') {
+        navigate('/pending-approval')
+      } else if (profile?.status === 'aprovado') {
+        navigate('/')
+      }
+    }
+  }, [user, profile, loading, navigate])
 
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -70,11 +84,12 @@ export default function Login() {
     setIsLoading(true)
     setLoginError('')
 
-    // Simulate Authentication API call
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    const { error } = await signIn(values.email, values.password)
 
-    if (values.password === 'wrong') {
-      setLoginError('Credenciais inválidas. Por favor, tente novamente.')
+    if (error) {
+      setLoginError(
+        'Credenciais inválidas. Por favor, verifique seu email e senha e tente novamente.',
+      )
       setIsLoading(false)
       return
     }
@@ -83,12 +98,11 @@ export default function Login() {
       title: 'Acesso Autorizado',
       description: 'Bem-vindo ao ÚLTIMO DRAGÃO.',
     })
-    // Navigate to dashboard
-    navigate('/')
+
+    // Navigation is handled by the useEffect above once auth state changes
   }
 
   const onRecoverySubmit = async (values: z.infer<typeof recoverySchema>) => {
-    // Simulate Recovery API call
     await new Promise((resolve) => setTimeout(resolve, 1000))
 
     toast({
@@ -101,12 +115,11 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-black flex flex-col justify-center relative overflow-hidden font-sans">
-      {/* Background visual effects */}
       <div className="absolute top-1/4 -left-64 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[120px] mix-blend-screen pointer-events-none" />
       <div className="absolute bottom-1/4 -right-64 w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[120px] mix-blend-screen pointer-events-none" />
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none opacity-30" />
 
-      <div className="w-full max-w-md mx-auto px-4 z-10 animate-fade-in-up">
+      <div className="w-full max-w-md mx-auto px-4 z-10 animate-fade-in-up py-12">
         <div className="flex flex-col items-center mb-8">
           <div className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-primary/40 bg-black shadow-[0_0_30px_rgba(212,175,55,0.3)] mb-4">
             <img src={logoImg} alt="Último Dragão Logo" className="h-full w-full object-cover" />
@@ -236,11 +249,23 @@ export default function Login() {
                         <div className="relative">
                           <Lock className="absolute left-3 top-3 h-4 w-4 text-white/40" />
                           <Input
-                            type="password"
+                            type={showPassword ? 'text' : 'password'}
                             placeholder="••••••••"
-                            className="bg-white/5 border-white/10 pl-10 text-white placeholder:text-white/30 focus-visible:ring-primary/50 transition-colors"
+                            className="bg-white/5 border-white/10 pl-10 pr-10 text-white placeholder:text-white/30 focus-visible:ring-primary/50 transition-colors"
                             {...field}
                           />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-3 text-white/40 hover:text-white/80 transition-colors"
+                            tabIndex={-1}
+                          >
+                            {showPassword ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </button>
                         </div>
                       </FormControl>
                       <FormMessage className="text-red-400" />
@@ -262,6 +287,16 @@ export default function Login() {
                 </Button>
               </form>
             </Form>
+
+            <div className="mt-6 text-center text-sm text-white/60 border-t border-white/10 pt-6">
+              Não tem uma conta?{' '}
+              <Link
+                to="/signup"
+                className="text-primary hover:text-accent font-medium transition-colors"
+              >
+                Cadastre-se
+              </Link>
+            </div>
           </CardContent>
           <CardFooter className="flex justify-center border-t border-white/5 pt-5 pb-5 bg-black/20">
             <p className="text-xs text-white/40 flex items-center tracking-wider uppercase font-medium">

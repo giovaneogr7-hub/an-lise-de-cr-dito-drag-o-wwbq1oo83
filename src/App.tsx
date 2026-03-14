@@ -10,6 +10,8 @@ import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 import Onboarding from './pages/Onboarding'
 import Login from './pages/Login'
+import Signup from './pages/Signup'
+import PendingApproval from './pages/PendingApproval'
 import { AuthProvider } from '@/hooks/use-auth'
 
 const App = () => (
@@ -21,6 +23,8 @@ const App = () => (
         <Routes>
           {/* Standalone Routes */}
           <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/pending-approval" element={<PendingApproval />} />
           <Route path="/onboarding" element={<Onboarding />} />
 
           {/* Dashboard Routes wrapped in Layout */}

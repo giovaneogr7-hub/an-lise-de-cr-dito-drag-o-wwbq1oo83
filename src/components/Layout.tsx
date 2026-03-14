@@ -1,9 +1,29 @@
-import { Outlet } from 'react-router-dom'
+import { Navigate, Outlet } from 'react-router-dom'
 import { SidebarProvider } from '@/components/ui/sidebar'
 import { AppSidebar } from './AppSidebar'
 import { Header } from './Header'
+import { useAuth } from '@/hooks/use-auth'
+import { Loader2 } from 'lucide-react'
 
 export default function Layout() {
+  const { user, profile, loading } = useAuth()
+
+  if (loading) {
+    return (
+      <div className="min-h-screen w-full bg-black flex items-center justify-center">
+        <Loader2 className="w-10 h-10 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />
+  }
+
+  if (!profile || profile.status === 'pendente' || profile.status === 'negado') {
+    return <Navigate to="/pending-approval" replace />
+  }
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background text-foreground overflow-hidden">
