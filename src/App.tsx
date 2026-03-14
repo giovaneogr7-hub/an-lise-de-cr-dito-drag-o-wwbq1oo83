@@ -8,6 +8,7 @@ import Reports from './pages/Reports'
 import Settings from './pages/Settings'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
+import Onboarding from './pages/Onboarding'
 
 const App = () => (
   <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
@@ -15,12 +16,17 @@ const App = () => (
       <Toaster />
       <Sonner />
       <Routes>
+        {/* Standalone Route for Onboarding */}
+        <Route path="/onboarding" element={<Onboarding />} />
+
+        {/* Dashboard Routes wrapped in Layout */}
         <Route element={<Layout />}>
           <Route path="/" element={<Index />} />
           <Route path="/analysis" element={<Analysis />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/settings" element={<Settings />} />
         </Route>
+
         <Route path="*" element={<NotFound />} />
       </Routes>
     </TooltipProvider>
