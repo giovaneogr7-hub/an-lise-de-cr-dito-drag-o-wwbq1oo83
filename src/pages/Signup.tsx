@@ -54,9 +54,9 @@ export default function Signup() {
 
   useEffect(() => {
     if (!loading && user) {
-      if (profile?.status === 'pendente' || profile?.status === 'negado') {
+      if (!['ativo', 'aprovado'].includes(profile?.status || '')) {
         navigate('/pending-approval')
-      } else if (profile?.status === 'aprovado') {
+      } else {
         navigate('/')
       }
     }
@@ -87,7 +87,6 @@ export default function Signup() {
       }
 
       if (data?.user) {
-        // Fetch role_id for the default 'cliente' role
         const { data: roleData } = await supabase
           .from('roles')
           .select('id')

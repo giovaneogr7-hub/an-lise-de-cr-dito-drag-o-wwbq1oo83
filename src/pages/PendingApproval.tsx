@@ -1,11 +1,11 @@
-import { AlertCircle, LogOut } from 'lucide-react'
+import { AlertCircle, Ban, Clock, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/use-auth'
 import { useNavigate } from 'react-router-dom'
 import logoImg from '@/assets/40409577-9054-4c9f-af12-2c8c43626167-a0a47.jpeg'
 
 export default function PendingApproval() {
-  const { signOut } = useAuth()
+  const { signOut, profile } = useAuth()
   const navigate = useNavigate()
 
   const handleLogout = async () => {
@@ -13,10 +13,56 @@ export default function PendingApproval() {
     navigate('/login')
   }
 
+  const status = profile?.status || 'pendente'
+
+  let config = {
+    icon: Clock,
+    color: 'text-yellow-500',
+    bg: 'bg-yellow-500/10',
+    border: 'border-yellow-500/30',
+    shadow: 'shadow-[0_0_30px_rgba(234,179,8,0.2)]',
+    title: 'Aguardando Aprovação',
+    desc: 'Seu cadastro está em análise. Por favor, aguarde a autorização de um administrador.',
+    glow1: 'bg-yellow-500/10',
+    glow2: 'bg-orange-600/10',
+  }
+
+  if (status === 'negado') {
+    config = {
+      icon: Ban,
+      color: 'text-destructive',
+      bg: 'bg-destructive/10',
+      border: 'border-destructive/30',
+      shadow: 'shadow-[0_0_30px_rgba(239,68,68,0.2)]',
+      title: 'Acesso Negado',
+      desc: 'Infelizmente, sua solicitação de acesso não foi aprovada neste momento.',
+      glow1: 'bg-red-500/10',
+      glow2: 'bg-rose-600/10',
+    }
+  } else if (status === 'inativo') {
+    config = {
+      icon: AlertCircle,
+      color: 'text-gray-400',
+      bg: 'bg-gray-500/10',
+      border: 'border-gray-500/30',
+      shadow: 'shadow-[0_0_30px_rgba(156,163,175,0.2)]',
+      title: 'Conta Desativada',
+      desc: 'Sua conta foi desativada temporariamente. Entre em contato com a administração.',
+      glow1: 'bg-gray-500/10',
+      glow2: 'bg-slate-600/10',
+    }
+  }
+
+  const Icon = config.icon
+
   return (
     <div className="min-h-screen bg-black flex flex-col justify-center items-center relative overflow-hidden font-sans px-4 py-12">
-      <div className="absolute top-1/4 -left-64 w-[600px] h-[600px] bg-yellow-500/10 rounded-full blur-[120px] mix-blend-screen pointer-events-none" />
-      <div className="absolute bottom-1/4 -right-64 w-[600px] h-[600px] bg-orange-600/10 rounded-full blur-[120px] mix-blend-screen pointer-events-none" />
+      <div
+        className={`absolute top-1/4 -left-64 w-[600px] h-[600px] ${config.glow1} rounded-full blur-[120px] mix-blend-screen pointer-events-none`}
+      />
+      <div
+        className={`absolute bottom-1/4 -right-64 w-[600px] h-[600px] ${config.glow2} rounded-full blur-[120px] mix-blend-screen pointer-events-none`}
+      />
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none opacity-30" />
 
       <div className="z-10 bg-black/60 p-8 sm:p-10 rounded-2xl border border-white/10 backdrop-blur-2xl shadow-2xl max-w-md w-full text-center animate-fade-in-up">
@@ -24,15 +70,15 @@ export default function PendingApproval() {
           <img src={logoImg} alt="Último Dragão Logo" className="h-full w-full object-cover" />
         </div>
 
-        <div className="mx-auto w-16 h-16 bg-yellow-500/10 rounded-full border border-yellow-500/30 flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(234,179,8,0.2)]">
-          <AlertCircle className="w-8 h-8 text-yellow-500" />
+        <div
+          className={`mx-auto w-16 h-16 ${config.bg} rounded-full border ${config.border} flex items-center justify-center mb-6 ${config.shadow}`}
+        >
+          <Icon className={`w-8 h-8 ${config.color}`} />
         </div>
 
-        <h1 className="text-2xl font-display font-bold text-white mb-3">Aguardando Aprovação</h1>
+        <h1 className="text-2xl font-display font-bold text-white mb-3">{config.title}</h1>
 
-        <p className="text-white/60 mb-8 leading-relaxed">
-          Seu cadastro está em análise. Por favor, aguarde a autorização de um administrador.
-        </p>
+        <p className="text-white/60 mb-8 leading-relaxed">{config.desc}</p>
 
         <div className="border-t border-white/10 pt-8 mt-2">
           <Button

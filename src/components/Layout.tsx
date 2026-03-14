@@ -20,7 +20,7 @@ export default function Layout() {
     return <Navigate to="/login" replace />
   }
 
-  if (!profile || profile.status === 'pendente' || profile.status === 'negado') {
+  if (!profile || !['ativo', 'aprovado'].includes(profile.status || '')) {
     return <Navigate to="/pending-approval" replace />
   }
 

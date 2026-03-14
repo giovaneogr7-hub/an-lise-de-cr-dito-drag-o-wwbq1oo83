@@ -57,9 +57,9 @@ export default function Login() {
 
   useEffect(() => {
     if (!loading && user) {
-      if (profile?.status === 'pendente' || profile?.status === 'negado') {
+      if (!['ativo', 'aprovado'].includes(profile?.status || '')) {
         navigate('/pending-approval')
-      } else if (profile?.status === 'aprovado') {
+      } else {
         navigate('/')
       }
     }
@@ -96,8 +96,6 @@ export default function Login() {
       title: 'Acesso Autorizado',
       description: 'Bem-vindo ao ÚLTIMO DRAGÃO.',
     })
-
-    // Navigation is handled by the useEffect above once auth state changes
   }
 
   const onRecoverySubmit = async (values: z.infer<typeof recoverySchema>) => {

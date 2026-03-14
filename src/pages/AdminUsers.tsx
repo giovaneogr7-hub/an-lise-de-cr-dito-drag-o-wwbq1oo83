@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Navigate } from 'react-router-dom'
-import { CheckCircle2, XCircle, Users as UsersIcon, Loader2 } from 'lucide-react'
+import { Users as UsersIcon, Loader2, UserPlus, CheckCircle2, Ban, Edit } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,
@@ -22,34 +22,35 @@ import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/hooks/use-auth'
 import { supabase } from '@/lib/supabase/client'
+import { cn } from '@/lib/utils'
+import { CreateUserModal, EditUserModal } from '@/components/admin/UserModals'
 
 export default function AdminUsers() {
   const { profile } = useAuth()
   const { toast } = useToast()
+
   const [users, setUsers] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [statusFilter, setStatusFilter] = useState('pendente')
+  const [statusFilter, setStatusFilter] = useState('todos')
+
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [editingUser, setEditingUser] = useState<any>(null)
 
   useEffect(() => {
-    if (profile?.role === 'admin') {
-      fetchUsers()
-    }
+    if (profile?.role === 'admin') fetchUsers()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.role, statusFilter])
 
   const fetchUsers = async () => {
     setIsLoading(true)
-    const { data, error } = await supabase
-      .from('usuarios')
-      .select('id, nome, email, cpf, telefone, data_criacao, status')
-      .eq('status', statusFilter)
-      .order('data_criacao', { ascending: false })
+    let query = supabase.from('usuarios').select('*').order('data_criacao', { ascending: false })
+    if (statusFilter !== 'todos') query = query.eq('status', statusFilter)
 
-    if (error) {
+    const { data, error } = await query
+    if (error)
       toast({ title: 'Erro', description: 'Falha ao carregar usuários.', variant: 'destructive' })
-    } else {
-      setUsers(data || [])
-    }
+    else setUsers(data || [])
     setIsLoading(false)
   }
 
@@ -57,25 +58,41 @@ export default function AdminUsers() {
     return <Navigate to="/" replace />
   }
 
-  const handleAction = async (id: string, newStatus: 'aprovado' | 'negado') => {
-    const { error } = await supabase.from('usuarios').update({ status: newStatus }).eq('id', id)
-    if (error) {
-      toast({ title: 'Erro', description: error.message, variant: 'destructive' })
-    } else {
+  const handleApprove = async (id: string) => {
+    const { data, error } = await supabase.functions.invoke('admin-users', {
+      body: { action: 'approve', userId: id },
+    })
+    if (error) toast({ title: 'Erro', description: error.message, variant: 'destructive' })
+    else {
       toast({
-        title: 'Sucesso',
-        description: `Usuário ${newStatus === 'aprovado' ? 'aprovado' : 'reprovado'} com sucesso.`,
+        title: 'Usuário Aprovado',
+        description: `Senha temporária enviada: ${data.password}`,
       })
-      if (statusFilter === 'pendente') {
-        setUsers(users.filter((u) => u.id !== id))
-      } else {
-        fetchUsers()
-      }
+      fetchUsers()
+    }
+  }
+
+  const handleDeactivate = async (id: string) => {
+    const { error } = await supabase.functions.invoke('admin-users', {
+      body: { action: 'deactivate', userId: id },
+    })
+    if (error) toast({ title: 'Erro', description: error.message, variant: 'destructive' })
+    else {
+      toast({ title: 'Sucesso', description: 'Usuário desativado com sucesso.' })
+      fetchUsers()
     }
   }
 
   return (
     <div className="space-y-6 pb-8 animate-fade-in">
+      <CreateUserModal open={isCreateOpen} onOpenChange={setIsCreateOpen} onSuccess={fetchUsers} />
+      <EditUserModal
+        open={isEditOpen}
+        onOpenChange={setIsEditOpen}
+        user={editingUser}
+        onSuccess={fetchUsers}
+      />
+
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
         <div className="flex items-center gap-3">
           <div className="relative w-10 h-10 flex items-center justify-center bg-black rounded-xl border border-primary/50 shadow-[0_0_15px_rgba(212,175,55,0.2)]">
@@ -83,24 +100,33 @@ export default function AdminUsers() {
           </div>
           <div>
             <h1 className="text-3xl font-display font-bold text-foreground">
-              Aprovação de Usuários
+              Gerenciamento de Acessos
             </h1>
             <p className="text-sm text-muted-foreground">
-              Gerenciamento de acessos à plataforma Dragão
+              Controle de usuários da plataforma Dragão
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3 bg-black/40 p-2 rounded-xl border border-white/5 backdrop-blur-md">
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[160px] bg-background border-border/50 hover:bg-black/40 transition-colors">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="pendente">Pendentes</SelectItem>
-              <SelectItem value="aprovado">Aprovados</SelectItem>
-              <SelectItem value="negado">Negados</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="flex items-center gap-3">
+          <div className="bg-black/40 p-2 rounded-xl border border-white/5 backdrop-blur-md">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[160px] bg-background border-border/50 hover:bg-black/40">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                <SelectItem value="pendente">Pendentes</SelectItem>
+                <SelectItem value="ativo">Ativos</SelectItem>
+                <SelectItem value="inativo">Inativos</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <Button
+            onClick={() => setIsCreateOpen(true)}
+            className="bg-primary text-black hover:bg-accent hover:text-white shadow-[0_0_15px_rgba(212,175,55,0.2)]"
+          >
+            <UserPlus className="w-4 h-4 mr-2" /> Novo Usuário
+          </Button>
         </div>
       </div>
 
@@ -113,9 +139,9 @@ export default function AdminUsers() {
             <Table>
               <TableHeader className="bg-black/40">
                 <TableRow className="hover:bg-transparent border-border/50">
-                  <TableHead className="text-primary font-semibold">Data</TableHead>
-                  <TableHead className="text-primary font-semibold">Nome</TableHead>
-                  <TableHead className="text-primary font-semibold">Contato</TableHead>
+                  <TableHead className="text-primary font-semibold">Data Criação</TableHead>
+                  <TableHead className="text-primary font-semibold">Usuário</TableHead>
+                  <TableHead className="text-primary font-semibold">Tipo de Acesso</TableHead>
                   <TableHead className="text-primary font-semibold">Status</TableHead>
                   <TableHead className="text-right text-primary font-semibold">Ações</TableHead>
                 </TableRow>
@@ -130,70 +156,72 @@ export default function AdminUsers() {
                 ) : users.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                      {statusFilter === 'pendente'
-                        ? 'Nenhuma solicitação pendente no momento'
-                        : 'Nenhum usuário encontrado para este filtro.'}
+                      Nenhum usuário encontrado.
                     </TableCell>
                   </TableRow>
                 ) : (
                   users.map((user) => (
-                    <TableRow
-                      key={user.id}
-                      className="border-border/20 hover:bg-white/5 transition-colors"
-                    >
+                    <TableRow key={user.id} className="border-border/20 hover:bg-white/5">
                       <TableCell className="font-mono text-xs">
-                        {user.data_criacao
-                          ? new Date(user.data_criacao).toLocaleDateString('pt-BR')
-                          : '-'}
-                      </TableCell>
-                      <TableCell className="font-medium text-foreground">
-                        <div>{user.nome || '-'}</div>
-                        <div className="text-xs text-muted-foreground font-normal">
-                          {user.cpf || '-'}
-                        </div>
+                        {new Date(user.data_criacao).toLocaleDateString('pt-BR')}
                       </TableCell>
                       <TableCell>
-                        <div className="text-sm">{user.email || '-'}</div>
-                        <div className="text-xs text-muted-foreground">{user.telefone || '-'}</div>
+                        <div className="font-medium text-foreground">{user.nome || '-'}</div>
+                        <div className="text-xs text-muted-foreground">{user.email}</div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="uppercase tracking-wider text-[10px]">
+                          {user.role || 'Desconhecido'}
+                        </Badge>
                       </TableCell>
                       <TableCell>
                         <Badge
                           variant="secondary"
-                          className={`
-                            ${user.status === 'pendente' ? 'bg-accent/10 text-accent border-accent/20' : ''}
-                            ${user.status === 'negado' ? 'bg-destructive/10 text-destructive border-destructive/20' : ''}
-                            ${user.status === 'aprovado' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : ''}
-                          `}
+                          className={cn(
+                            user.status === 'pendente' &&
+                              'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
+                            user.status === 'ativo' &&
+                              'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+                            user.status === 'inativo' &&
+                              'bg-gray-500/10 text-gray-400 border-gray-500/20',
+                          )}
                         >
-                          {user.status
-                            ? user.status.charAt(0).toUpperCase() + user.status.slice(1)
-                            : '-'}
+                          {user.status?.toUpperCase() || '-'}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        {user.status === 'pendente' ? (
-                          <div className="flex justify-end gap-2">
+                        <div className="flex justify-end gap-2">
+                          {user.status === 'pendente' && (
+                            <Button
+                              size="sm"
+                              className="bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-600 hover:text-white h-8"
+                              onClick={() => handleApprove(user.id)}
+                            >
+                              <CheckCircle2 className="w-4 h-4 mr-1" /> Aprovar
+                            </Button>
+                          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 hover:bg-accent/20 hover:text-accent border-border/50"
+                            onClick={() => {
+                              setEditingUser(user)
+                              setIsEditOpen(true)
+                            }}
+                          >
+                            <Edit className="w-4 h-4 mr-1" /> Editar
+                          </Button>
+                          {user.status === 'ativo' && (
                             <Button
                               variant="outline"
                               size="sm"
-                              className="border-destructive/50 text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors h-8"
-                              onClick={() => handleAction(user.id, 'negado')}
+                              className="h-8 border-destructive/50 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                              onClick={() => handleDeactivate(user.id)}
                             >
-                              <XCircle className="w-4 h-4 mr-1" />
-                              Reprovar
+                              <Ban className="w-4 h-4 mr-1" /> Desativar
                             </Button>
-                            <Button
-                              size="sm"
-                              className="bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-600 hover:text-white transition-colors h-8 shadow-[0_0_10px_rgba(16,185,129,0.1)] hover:shadow-[0_0_15px_rgba(16,185,129,0.3)]"
-                              onClick={() => handleAction(user.id, 'aprovado')}
-                            >
-                              <CheckCircle2 className="w-4 h-4 mr-1" />
-                              Aprovar
-                            </Button>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-muted-foreground italic">Resolvido</span>
-                        )}
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))

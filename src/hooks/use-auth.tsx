@@ -48,7 +48,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      // Prevent UI deadlocks using setTimeout for state transitions
       setTimeout(() => {
         setSession(session)
         setUser(session?.user ?? null)
@@ -81,7 +80,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       .from('usuarios')
       .select('*')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
       .then(({ data }) => {
         setTimeout(() => {
           setProfile(data)
@@ -92,7 +91,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const refreshProfile = async () => {
     if (!user) return
-    const { data } = await supabase.from('usuarios').select('*').eq('id', user.id).single()
+    const { data } = await supabase.from('usuarios').select('*').eq('id', user.id).maybeSingle()
     setTimeout(() => {
       setProfile(data)
     }, 0)
