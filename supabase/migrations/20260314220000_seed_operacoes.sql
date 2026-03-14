@@ -3,8 +3,9 @@ DECLARE
   mock_user_id UUID;
   mock_solicitacao_id UUID;
 BEGIN
-  -- Get any user to be the client target for dummy operation
-  SELECT id INTO mock_user_id FROM auth.users LIMIT 1;
+  -- Get any user from public.usuarios to be the client target for dummy operation
+  -- (previously it queried auth.users, which caused foreign key constraint violations)
+  SELECT id INTO mock_user_id FROM public.usuarios LIMIT 1;
   
   -- Ensure operacoes has at least one record for the UI to be testable
   IF NOT EXISTS (SELECT 1 FROM public.operacoes LIMIT 1) AND mock_user_id IS NOT NULL THEN
