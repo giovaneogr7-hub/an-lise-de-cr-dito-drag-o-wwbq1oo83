@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Coins, Filter, Percent, Users, Eye } from 'lucide-react'
 import {
   Select,
@@ -20,13 +20,11 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { ApplicantDrawer } from '@/components/ApplicantDrawer'
 import { useToast } from '@/hooks/use-toast'
 import { MOCK_APPLICATIONS, CreditApplication, formatCurrency } from '@/lib/mock-data'
 
 export default function Index() {
-  const [selectedApplicant, setSelectedApplicant] = useState<CreditApplication | null>(null)
-  const [drawerOpen, setDrawerOpen] = useState(false)
+  const navigate = useNavigate()
   const { toast } = useToast()
 
   const handleFilter = () => {
@@ -37,8 +35,7 @@ export default function Index() {
   }
 
   const openDetails = (app: CreditApplication) => {
-    setSelectedApplicant(app)
-    setDrawerOpen(true)
+    navigate(`/analysis?id=${app.id}`)
   }
 
   return (
@@ -169,7 +166,7 @@ export default function Index() {
                         }}
                       >
                         <Eye className="w-4 h-4 mr-2" />
-                        Visualizar
+                        Avaliar
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -179,12 +176,6 @@ export default function Index() {
           </div>
         </CardContent>
       </Card>
-
-      <ApplicantDrawer
-        open={drawerOpen}
-        onOpenChange={setDrawerOpen}
-        applicant={selectedApplicant}
-      />
     </div>
   )
 }
