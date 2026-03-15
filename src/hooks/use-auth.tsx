@@ -43,11 +43,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     let isMounted = true
 
-    const fetchProfileAndSetUser = (session: Session | null) => {
-      setSession(session)
-      setUser(session?.user ?? null)
+    const fetchProfileAndSetUser = (currentSession: Session | null) => {
+      setSession(currentSession)
+      setUser(currentSession?.user ?? null)
 
-      if (!session?.user) {
+      if (!currentSession?.user) {
         if (isMounted) {
           setProfile(null)
           setLoading(false)
@@ -55,15 +55,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return
       }
 
-      setLoading(true)
+      // Safe profile fetch using maybeSingle to avoid PGRST116 (HTTP 406) crashes
       supabase
         .from('usuarios')
         .select('*')
-        .eq('id', session.user.id)
+        .eq('id', currentSession.user.id)
         .maybeSingle()
-        .then(({ data }) => {
+        .then(({ data, error }) => {
+          if (error && error.code !== 'PGRST116') {
+            console.error('Error fetching profile:', error.message)
+          }
           if (isMounted) {
             setProfile(data)
+            setLoading(false)
+          }
+        })
+        .catch((err) => {
+          console.error('Unexpected error fetching profile:', err)
+          if (isMounted) {
             setLoading(false)
           }
         })

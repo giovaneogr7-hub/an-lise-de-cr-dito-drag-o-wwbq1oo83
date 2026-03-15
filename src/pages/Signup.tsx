@@ -99,7 +99,7 @@ export default function Signup() {
           .from('roles')
           .select('id')
           .eq('nome', 'cliente')
-          .single()
+          .maybeSingle() // Safe against missing roles to prevent crash
 
         const { error: dbError } = await supabase.from('usuarios').insert({
           id: data.user.id,

@@ -63,6 +63,7 @@ export default function Login() {
         return
       }
 
+      // Priority check: Admins bypass status restrictions
       const isAdmin = profile.role === 'admin'
       const isAtivo = ['ativo', 'aprovado'].includes(profile.status || '')
 
@@ -106,11 +107,17 @@ export default function Login() {
     } = await supabase.auth.getSession()
 
     if (session?.user) {
-      const { data: userProfile } = await supabase
+      const { data: userProfile, error: profileError } = await supabase
         .from('usuarios')
         .select('*')
         .eq('id', session.user.id)
         .maybeSingle()
+
+      if (profileError && profileError.code !== 'PGRST116') {
+        setLoginError('Erro ao verificar permissões de acesso.')
+        setIsLoading(false)
+        return
+      }
 
       if (userProfile) {
         const isAdmin = userProfile.role === 'admin'
@@ -124,6 +131,7 @@ export default function Login() {
         }
         return
       } else {
+        // Missing profile logic handling
         navigate('/pending-approval')
         return
       }

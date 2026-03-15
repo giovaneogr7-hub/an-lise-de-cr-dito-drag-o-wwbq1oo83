@@ -10,12 +10,20 @@ export default function PendingApproval() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    if (!loading && user && profile) {
-      const isAdmin = profile.role === 'admin'
-      const isAtivo = ['ativo', 'aprovado'].includes(profile.status || '')
+    if (!loading) {
+      if (!user) {
+        navigate('/login')
+        return
+      }
 
-      if (isAdmin || isAtivo) {
-        navigate('/')
+      if (profile) {
+        const isAdmin = profile.role === 'admin'
+        const isAtivo = ['ativo', 'aprovado'].includes(profile.status || '')
+
+        // Priority check: Admins bypass status restrictions
+        if (isAdmin || isAtivo) {
+          navigate('/')
+        }
       }
     }
   }, [loading, user, profile, navigate])
@@ -48,7 +56,19 @@ export default function PendingApproval() {
     glow2: 'bg-orange-600/10',
   }
 
-  if (status === 'pendente' && ['financeiro', 'cobrador'].includes(role)) {
+  if (!profile) {
+    config = {
+      icon: AlertCircle,
+      color: 'text-gray-400',
+      bg: 'bg-gray-500/10',
+      border: 'border-gray-500/30',
+      shadow: 'shadow-[0_0_30px_rgba(156,163,175,0.2)]',
+      title: 'Perfil Incompleto',
+      desc: 'Seu cadastro foi realizado, mas os dados do perfil não foram encontrados. Por favor, contate o suporte técnico.',
+      glow1: 'bg-gray-500/10',
+      glow2: 'bg-slate-600/10',
+    }
+  } else if (status === 'pendente' && ['financeiro', 'cobrador'].includes(role)) {
     config.desc = 'Sua conta está aguardando aprovação do administrador'
   } else if (status === 'negado') {
     config = {
