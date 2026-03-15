@@ -1,5 +1,13 @@
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Settings, PieChart, ShieldCheck, Users, TrendingUp } from 'lucide-react'
+import {
+  LayoutDashboard,
+  Settings,
+  PieChart,
+  ShieldCheck,
+  Users,
+  TrendingUp,
+  ShieldAlert,
+} from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -22,7 +30,12 @@ export function AppSidebar() {
     { title: 'Dashboard', icon: LayoutDashboard, url: '/' },
     { title: 'Análise de Crédito', icon: ShieldCheck, url: '/analysis' },
     { title: 'Relatórios', icon: PieChart, url: '/reports' },
-    ...(profile?.role === 'admin' ? [{ title: 'Usuários', icon: Users, url: '/admin/users' }] : []),
+    ...(profile?.role === 'admin'
+      ? [
+          { title: 'Admin Dashboard', icon: ShieldAlert, url: '/admin/dashboard' },
+          { title: 'Usuários', icon: Users, url: '/admin/users' },
+        ]
+      : []),
     ...(profile?.role === 'financeiro'
       ? [
           { title: 'Gestão de Clientes', icon: Users, url: '/financeiro/clientes' },

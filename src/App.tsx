@@ -7,6 +7,7 @@ import Analysis from './pages/Analysis'
 import Reports from './pages/Reports'
 import Settings from './pages/Settings'
 import AdminUsers from './pages/AdminUsers'
+import AdminDashboard from './pages/AdminDashboard'
 import FinanceiroClientes from './pages/financeiro/FinanceiroClientes'
 import FinanceiroInvestidores from './pages/financeiro/FinanceiroInvestidores'
 import NotFound from './pages/NotFound'
@@ -37,6 +38,7 @@ const App = () => (
             <Route path="/analysis" element={<Analysis />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/admin/users" element={<AdminUsers />} />
             <Route path="/financeiro/clientes" element={<FinanceiroClientes />} />
             <Route path="/financeiro/investidores" element={<FinanceiroInvestidores />} />
