@@ -38,63 +38,59 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
-
-  const [authLoading, setAuthLoading] = useState(true)
-  const [profileLoading, setProfileLoading] = useState(true)
-
-  const loading = authLoading || profileLoading
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let isMounted = true
+
+    const fetchProfileAndSetUser = (session: Session | null) => {
+      setSession(session)
+      setUser(session?.user ?? null)
+
+      if (!session?.user) {
+        if (isMounted) {
+          setProfile(null)
+          setLoading(false)
+        }
+        return
+      }
+
+      setLoading(true)
+      supabase
+        .from('usuarios')
+        .select('*')
+        .eq('id', session.user.id)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (isMounted) {
+            setProfile(data)
+            setLoading(false)
+          }
+        })
+    }
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setTimeout(() => {
-        setSession(session)
-        setUser(session?.user ?? null)
-        setAuthLoading(false)
-      }, 0)
+      fetchProfileAndSetUser(session)
     })
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setTimeout(() => {
-        setSession(session)
-        setUser(session?.user ?? null)
-        setAuthLoading(false)
-      }, 0)
+      if (isMounted) {
+        fetchProfileAndSetUser(session)
+      }
     })
 
-    return () => subscription.unsubscribe()
-  }, [])
-
-  useEffect(() => {
-    if (!user) {
-      setTimeout(() => {
-        setProfile(null)
-        setProfileLoading(false)
-      }, 0)
-      return
+    return () => {
+      isMounted = false
+      subscription.unsubscribe()
     }
-
-    setProfileLoading(true)
-    supabase
-      .from('usuarios')
-      .select('*')
-      .eq('id', user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        setTimeout(() => {
-          setProfile(data)
-          setProfileLoading(false)
-        }, 0)
-      })
-  }, [user?.id])
+  }, [])
 
   const refreshProfile = async () => {
     if (!user) return
     const { data } = await supabase.from('usuarios').select('*').eq('id', user.id).maybeSingle()
-    setTimeout(() => {
-      setProfile(data)
-    }, 0)
+    setProfile(data)
   }
 
   const signUp = async (email: string, password: string): Promise<AuthResponse> => {

@@ -1,16 +1,36 @@
-import { AlertCircle, Ban, Clock, LogOut } from 'lucide-react'
+import { AlertCircle, Ban, Clock, LogOut, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/use-auth'
 import { useNavigate } from 'react-router-dom'
+import { useEffect } from 'react'
 import logoImg from '@/assets/40409577-9054-4c9f-af12-2c8c43626167-a0a47.jpeg'
 
 export default function PendingApproval() {
-  const { signOut, profile } = useAuth()
+  const { signOut, profile, user, loading } = useAuth()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    if (!loading && user && profile) {
+      const isAdmin = profile.role === 'admin'
+      const isAtivo = ['ativo', 'aprovado'].includes(profile.status || '')
+
+      if (isAdmin || isAtivo) {
+        navigate('/')
+      }
+    }
+  }, [loading, user, profile, navigate])
 
   const handleLogout = async () => {
     await signOut()
     navigate('/login')
+  }
+
+  if (loading || !profile) {
+    return (
+      <div className="min-h-screen w-full bg-black flex items-center justify-center">
+        <Loader2 className="w-10 h-10 animate-spin text-primary" />
+      </div>
+    )
   }
 
   const status = profile?.status || 'pendente'

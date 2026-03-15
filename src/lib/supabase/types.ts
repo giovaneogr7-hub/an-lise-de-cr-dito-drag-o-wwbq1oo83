@@ -413,7 +413,7 @@ export const Constants = {
 //   data_criacao: timestamp with time zone (nullable, default: now())
 //   role: text (nullable)
 //   role_id: uuid (nullable)
-//   status: text (nullable, default: 'pendente'::text)
+//   status: text (nullable, default: 'Ativo'::text)
 //   valor_credito_aprovado: numeric (nullable, default: 0)
 
 // --- CONSTRAINTS ---
@@ -439,30 +439,5 @@ export const Constants = {
 //   FOREIGN KEY solicitacoes_credito_usuario_id_fkey: FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
 // Table: usuarios
 //   PRIMARY KEY usuarios_pkey: PRIMARY KEY (id)
-//   CHECK usuarios_role_check: CHECK ((role = ANY (ARRAY['admin'::text, 'analista'::text, 'cliente'::text, 'financeiro'::text, 'cobrador'::text, 'investidor'::text])))
 //   FOREIGN KEY usuarios_role_id_fkey: FOREIGN KEY (role_id) REFERENCES roles(id)
 //   CHECK usuarios_status_check: CHECK ((status = ANY (ARRAY['pendente'::text, 'aprovado'::text, 'negado'::text, 'ativo'::text, 'inativo'::text])))
-
-// --- DATABASE FUNCTIONS ---
-// FUNCTION check_admin_status_update()
-//   CREATE OR REPLACE FUNCTION public.check_admin_status_update()
-//    RETURNS trigger
-//    LANGUAGE plpgsql
-//    SECURITY DEFINER
-//   AS $function$
-//   BEGIN
-//       IF NEW.status IS DISTINCT FROM OLD.status THEN
-//           IF NOT EXISTS (
-//               SELECT 1 FROM public.usuarios WHERE id = auth.uid() AND role = 'admin'
-//           ) THEN
-//               RAISE EXCEPTION 'Apenas administradores podem alterar o status do usuário.';
-//           END IF;
-//       END IF;
-//       RETURN NEW;
-//   END;
-//   $function$
-//
-
-// --- TRIGGERS ---
-// Table: usuarios
-//   enforce_admin_status_update: CREATE TRIGGER enforce_admin_status_update BEFORE UPDATE ON public.usuarios FOR EACH ROW EXECUTE FUNCTION check_admin_status_update()

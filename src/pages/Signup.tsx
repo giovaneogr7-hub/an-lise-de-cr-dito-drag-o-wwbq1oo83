@@ -54,15 +54,13 @@ export default function Signup() {
 
   useEffect(() => {
     if (!loading && user && profile) {
-      if (profile.role === 'admin') {
-        navigate('/')
-        return
-      }
+      const isAdmin = profile.role === 'admin'
+      const isAtivo = ['ativo', 'aprovado'].includes(profile.status || '')
 
-      if (!['ativo', 'aprovado'].includes(profile.status || '')) {
-        navigate('/pending-approval')
-      } else {
+      if (isAdmin || isAtivo) {
         navigate('/')
+      } else {
+        navigate('/pending-approval')
       }
     }
   }, [user, profile, loading, navigate])
