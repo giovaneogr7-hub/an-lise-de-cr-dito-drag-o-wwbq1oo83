@@ -9,22 +9,18 @@ const corsHeaders = {
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      { auth: { autoRefreshToken: false, persistSession: false } },
+    )
 
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    })
+    const token = req.headers.get('Authorization')?.replace('Bearer ', '')
+    if (!token) throw new Error('Missing Authorization header')
 
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) throw new Error('Missing Authorization header')
-
-    const token = authHeader.replace('Bearer ', '')
     const {
       data: { user },
       error: authError,
@@ -36,29 +32,29 @@ Deno.serve(async (req: Request) => {
       .select('role')
       .eq('id', user.id)
       .maybeSingle()
-    if (caller?.role !== 'admin' && caller?.role !== 'financeiro')
-      throw new Error('Forbidden: Insufficient permissions')
+    if (caller?.role !== 'admin' && caller?.role !== 'financeiro') throw new Error('Forbidden')
 
-    const body = await req.json()
-    const { action } = body
+    const logAction = async (alvo: string | null, acao: string, detalhes: any) => {
+      await supabaseAdmin
+        .from('logs_auditoria')
+        .insert({
+          admin_id: user.id,
+          usuario_alvo_id: alvo,
+          acao,
+          detalhes,
+        })
+        .catch(console.error)
+    }
+
+    const { action, ...body } = await req.json()
 
     if (action === 'create') {
       const { email, nome, role, cpf, valor_credito_aprovado, investimento_data } = body.data
-
-      if (
-        caller?.role === 'financeiro' &&
-        !['cliente', 'investidor'].includes(role.toLowerCase())
-      ) {
-        throw new Error('Financeiro can only create clients or investors.')
-      }
-
-      const generatedPassword = crypto.randomUUID().replace(/-/g, '').slice(0, 9) + 'A1!'
-
+      const pass = crypto.randomUUID().slice(0, 10) + 'A1!'
       const { data: authData, error: createError } = await supabaseAdmin.auth.admin.createUser({
         email,
-        password: generatedPassword,
+        password: pass,
         email_confirm: true,
-        user_metadata: { force_password_change: true },
       })
       if (createError) throw createError
 
@@ -67,7 +63,6 @@ Deno.serve(async (req: Request) => {
         .select('id')
         .eq('nome', role.toLowerCase())
         .maybeSingle()
-
       const targetStatus = ['cliente', 'investidor'].includes(role.toLowerCase())
         ? 'ativo'
         : 'pendente'
@@ -83,54 +78,21 @@ Deno.serve(async (req: Request) => {
         valor_credito_aprovado: valor_credito_aprovado || 0,
       })
       if (insertError) throw insertError
-
-      if (role.toLowerCase() === 'investidor' && investimento_data) {
-        const { operacao_id, valor_investido, percentual_retorno, data_investimento } =
-          investimento_data
-        if (operacao_id) {
-          const { error: invError } = await supabaseAdmin.from('investimentos').insert({
-            usuario_id: authData.user.id,
-            operacao_id,
-            valor_investido,
-            percentual_retorno,
-            data_investimento,
-            status: 'ativo',
-          })
-          if (invError) throw invError
-        }
-      }
-
-      return new Response(
-        JSON.stringify({ success: true, user: authData.user, password: generatedPassword }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      )
+      await logAction(authData.user.id, 'Criação de Usuário', { role })
+      return new Response(JSON.stringify({ success: true, user: authData.user, password: pass }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     if (action === 'approve') {
-      const { userId } = body
-      const { data: targetUser } = await supabaseAdmin
-        .from('usuarios')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle()
-      if (!targetUser) throw new Error('User not found')
-
-      const newPassword = crypto.randomUUID().replace(/-/g, '').slice(0, 9) + 'X9#'
-
-      const { error: updateAuthError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
-        password: newPassword,
+      const pass = crypto.randomUUID().slice(0, 10) + 'X9#'
+      await supabaseAdmin.auth.admin.updateUserById(body.userId, {
+        password: pass,
         user_metadata: { force_password_change: true },
       })
-      if (updateAuthError) throw updateAuthError
-
-      const { error: updateDbError } = await supabaseAdmin
-        .from('usuarios')
-        .update({ status: 'ativo' })
-        .eq('id', userId)
-      if (updateDbError) throw updateDbError
-
-      console.log(`[MOCK EMAIL] Sent to ${targetUser.email}. Password: ${newPassword}`)
-      return new Response(JSON.stringify({ success: true, password: newPassword }), {
+      await supabaseAdmin.from('usuarios').update({ status: 'ativo' }).eq('id', body.userId)
+      await logAction(body.userId, 'Aprovação', { new_status: 'ativo' })
+      return new Response(JSON.stringify({ success: true, password: pass }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
@@ -138,116 +100,56 @@ Deno.serve(async (req: Request) => {
     if (action === 'update') {
       const {
         userId,
-        data: { nome, role, cpf, valor_credito_aprovado, investimento_data },
+        data: { nome, email, telefone, role, status, cpf, valor_credito_aprovado },
       } = body
+      const { data: target } = await supabaseAdmin
+        .from('usuarios')
+        .select('*')
+        .eq('id', userId)
+        .single()
 
-      if (caller?.role === 'financeiro') {
-        const { data: target } = await supabaseAdmin
-          .from('usuarios')
-          .select('role')
-          .eq('id', userId)
-          .single()
-        if (target?.role !== 'cliente' && target?.role !== 'investidor')
-          throw new Error('Financeiro can only update clients or investors.')
-      }
+      const payload: any = {}
+      if (nome !== undefined) payload.nome = nome
+      if (telefone !== undefined) payload.telefone = telefone
+      if (status !== undefined) payload.status = status
+      if (cpf !== undefined) payload.cpf = cpf
+      if (valor_credito_aprovado !== undefined)
+        payload.valor_credito_aprovado = valor_credito_aprovado
 
-      const updatePayload: any = { nome }
-
-      if (role) {
+      if (role && role !== target.role) {
         const { data: roleData } = await supabaseAdmin
           .from('roles')
           .select('id')
           .eq('nome', role.toLowerCase())
           .maybeSingle()
-        updatePayload.role = role.toLowerCase()
-        updatePayload.role_id = roleData?.id || null
+        payload.role = role.toLowerCase()
+        payload.role_id = roleData?.id || null
       }
 
-      if (cpf !== undefined) updatePayload.cpf = cpf
-      if (valor_credito_aprovado !== undefined)
-        updatePayload.valor_credito_aprovado = valor_credito_aprovado
-
-      const { error: updateDbError } = await supabaseAdmin
-        .from('usuarios')
-        .update(updatePayload)
-        .eq('id', userId)
-      if (updateDbError) throw updateDbError
-
-      if (investimento_data) {
-        const {
-          operacao_id,
-          valor_investido,
-          percentual_retorno,
-          data_investimento,
-          id: investimento_id,
-        } = investimento_data
-        if (investimento_id) {
-          const { error: invError } = await supabaseAdmin
-            .from('investimentos')
-            .update({
-              operacao_id,
-              valor_investido,
-              percentual_retorno,
-              data_investimento,
-            })
-            .eq('id', investimento_id)
-          if (invError) throw invError
-        } else if (operacao_id) {
-          const { error: invError } = await supabaseAdmin.from('investimentos').insert({
-            usuario_id: userId,
-            operacao_id,
-            valor_investido,
-            percentual_retorno,
-            data_investimento,
-            status: 'ativo',
-          })
-          if (invError) throw invError
-        }
+      if (email && email !== target.email) {
+        await supabaseAdmin.auth.admin.updateUserById(userId, { email })
+        payload.email = email
       }
 
-      return new Response(JSON.stringify({ success: true }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    if (action === 'deactivate') {
-      const { userId } = body
-      const { error: updateDbError } = await supabaseAdmin
-        .from('usuarios')
-        .update({ status: 'inativo' })
-        .eq('id', userId)
-      if (updateDbError) throw updateDbError
-      return new Response(JSON.stringify({ success: true }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    if (action === 'activate') {
-      const { userId } = body
-      const { error: updateDbError } = await supabaseAdmin
-        .from('usuarios')
-        .update({ status: 'ativo' })
-        .eq('id', userId)
-      if (updateDbError) throw updateDbError
+      if (Object.keys(payload).length > 0) {
+        await supabaseAdmin.from('usuarios').update(payload).eq('id', userId)
+        await logAction(userId, 'Edição de Perfil', payload)
+      }
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
     if (action === 'delete') {
-      const { userId } = body
-      if (caller?.role !== 'admin')
-        throw new Error('Apenas administradores podem excluir usuários.')
-
-      // Removing from public.usuarios first clears data cascades like solicitacoes_credito and investimentos cleanly
-      const { error: dbError } = await supabaseAdmin.from('usuarios').delete().eq('id', userId)
-      if (dbError) throw dbError
-
-      // Delete from auth.users
-      const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId)
-      if (authError)
-        console.error('Failed to delete auth user, but public profile removed:', authError)
-
+      if (caller?.role !== 'admin') throw new Error('Apenas admins podem excluir.')
+      const { data: targetUser } = await supabaseAdmin
+        .from('usuarios')
+        .select('email')
+        .eq('id', body.userId)
+        .maybeSingle()
+      await supabaseAdmin.from('usuarios').delete().eq('id', body.userId)
+      await supabaseAdmin.auth.admin.deleteUser(body.userId).catch(() => {})
+      await logAction(body.userId, 'Exclusão', { email: targetUser?.email })
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })

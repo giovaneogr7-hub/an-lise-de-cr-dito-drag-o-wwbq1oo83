@@ -1,7 +1,7 @@
 import { AlertCircle, Ban, Clock, LogOut, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/use-auth'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Navigate } from 'react-router-dom'
 import { useEffect } from 'react'
 import logoImg from '@/assets/40409577-9054-4c9f-af12-2c8c43626167-a0a47.jpeg'
 
@@ -15,12 +15,11 @@ export default function PendingApproval() {
         navigate('/login')
         return
       }
-
       if (profile) {
         const isAdmin = profile.role === 'admin'
         const isAtivo = ['ativo', 'aprovado'].includes(profile.status || '')
 
-        // Priority check: Admins bypass status restrictions
+        // Strict Admin Bypass: Redirect Admins out of PendingApproval instantly
         if (isAdmin || isAtivo) {
           navigate('/')
         }
@@ -39,6 +38,11 @@ export default function PendingApproval() {
         <Loader2 className="w-10 h-10 animate-spin text-primary" />
       </div>
     )
+  }
+
+  // Backup guard to prevent any flash of pending screen for admins
+  if (profile?.role === 'admin') {
+    return <Navigate to="/" replace />
   }
 
   const status = profile?.status || 'pendente'
@@ -94,9 +98,6 @@ export default function PendingApproval() {
       glow1: 'bg-gray-500/10',
       glow2: 'bg-slate-600/10',
     }
-    if (['cliente', 'investidor'].includes(role)) {
-      config.desc = 'Sua conta foi desativada'
-    }
   }
 
   const Icon = config.icon
@@ -123,7 +124,6 @@ export default function PendingApproval() {
         </div>
 
         <h1 className="text-2xl font-display font-bold text-white mb-3">{config.title}</h1>
-
         <p className="text-white/60 mb-8 leading-relaxed">{config.desc}</p>
 
         <div className="border-t border-white/10 pt-8 mt-2">
@@ -132,8 +132,7 @@ export default function PendingApproval() {
             variant="outline"
             className="w-full border-white/20 text-white hover:bg-white/10 hover:text-white transition-colors"
           >
-            <LogOut className="w-4 h-4 mr-2" />
-            Sair da Conta
+            <LogOut className="w-4 h-4 mr-2" /> Sair da Conta
           </Button>
         </div>
       </div>

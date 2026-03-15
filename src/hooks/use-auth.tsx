@@ -55,7 +55,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return
       }
 
-      // Safe profile fetch using maybeSingle to avoid PGRST116 (HTTP 406) crashes
       supabase
         .from('usuarios')
         .select('*')

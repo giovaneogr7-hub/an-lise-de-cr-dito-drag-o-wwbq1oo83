@@ -12,14 +12,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/hooks/use-auth'
 import { supabase } from '@/lib/supabase/client'
 import { maskCPF, maskPhone } from '@/lib/formatters'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Form,
   FormControl,
@@ -59,6 +52,7 @@ export default function Signup() {
         return
       }
 
+      // Strict Admin Bypass check
       const isAdmin = profile.role === 'admin'
       const isAtivo = ['ativo', 'aprovado'].includes(profile.status || '')
 
@@ -84,23 +78,19 @@ export default function Signup() {
 
   const onSubmit = async (values: z.infer<typeof signupSchema>) => {
     setIsLoading(true)
-
     try {
       const { data, error: authError } = await signUp(values.email, values.password)
-
       if (authError) {
         toast({ title: 'Erro no cadastro', description: authError.message, variant: 'destructive' })
         setIsLoading(false)
         return
       }
-
       if (data?.user) {
         const { data: roleData } = await supabase
           .from('roles')
           .select('id')
           .eq('nome', 'cliente')
-          .maybeSingle() // Safe against missing roles to prevent crash
-
+          .maybeSingle()
         const { error: dbError } = await supabase.from('usuarios').insert({
           id: data.user.id,
           nome: values.nome,
@@ -111,9 +101,7 @@ export default function Signup() {
           role_id: roleData?.id || null,
           status: 'pendente',
         })
-
         if (dbError) {
-          console.error(dbError)
           toast({
             title: 'Aviso',
             description: 'Conta criada, mas houve um erro ao salvar o perfil.',
@@ -125,12 +113,10 @@ export default function Signup() {
             description: 'Sua conta foi criada e está aguardando aprovação.',
           })
         }
-
         await refreshProfile()
         navigate('/pending-approval')
       }
     } catch (err) {
-      console.error(err)
       toast({
         title: 'Erro inesperado',
         description: 'Ocorreu um problema ao processar seu cadastro.',
@@ -180,7 +166,7 @@ export default function Signup() {
                             <User className="absolute left-3 top-3 h-4 w-4 text-white/40" />
                             <Input
                               placeholder="João da Silva"
-                              className="bg-white/5 border-white/10 pl-10 text-white placeholder:text-white/30 focus-visible:ring-primary/50 transition-colors"
+                              className="bg-white/5 border-white/10 pl-10 text-white"
                               {...field}
                             />
                           </div>
@@ -189,7 +175,6 @@ export default function Signup() {
                       </FormItem>
                     )}
                   />
-
                   <FormField
                     control={form.control}
                     name="email"
@@ -201,7 +186,7 @@ export default function Signup() {
                             <Mail className="absolute left-3 top-3 h-4 w-4 text-white/40" />
                             <Input
                               placeholder="seu@email.com"
-                              className="bg-white/5 border-white/10 pl-10 text-white placeholder:text-white/30 focus-visible:ring-primary/50 transition-colors"
+                              className="bg-white/5 border-white/10 pl-10 text-white"
                               {...field}
                             />
                           </div>
@@ -210,7 +195,6 @@ export default function Signup() {
                       </FormItem>
                     )}
                   />
-
                   <FormField
                     control={form.control}
                     name="cpf"
@@ -222,7 +206,7 @@ export default function Signup() {
                             <CreditCard className="absolute left-3 top-3 h-4 w-4 text-white/40" />
                             <Input
                               placeholder="000.000.000-00"
-                              className="bg-white/5 border-white/10 pl-10 text-white placeholder:text-white/30 focus-visible:ring-primary/50 transition-colors"
+                              className="bg-white/5 border-white/10 pl-10 text-white"
                               {...field}
                               onChange={(e) => field.onChange(maskCPF(e.target.value))}
                             />
@@ -232,7 +216,6 @@ export default function Signup() {
                       </FormItem>
                     )}
                   />
-
                   <FormField
                     control={form.control}
                     name="telefone"
@@ -244,7 +227,7 @@ export default function Signup() {
                             <Phone className="absolute left-3 top-3 h-4 w-4 text-white/40" />
                             <Input
                               placeholder="(00) 00000-0000"
-                              className="bg-white/5 border-white/10 pl-10 text-white placeholder:text-white/30 focus-visible:ring-primary/50 transition-colors"
+                              className="bg-white/5 border-white/10 pl-10 text-white"
                               {...field}
                               onChange={(e) => field.onChange(maskPhone(e.target.value))}
                             />
@@ -254,7 +237,6 @@ export default function Signup() {
                       </FormItem>
                     )}
                   />
-
                   <FormField
                     control={form.control}
                     name="password"
@@ -267,13 +249,13 @@ export default function Signup() {
                             <Input
                               type={showPassword ? 'text' : 'password'}
                               placeholder="••••••••"
-                              className="bg-white/5 border-white/10 pl-10 pr-10 text-white placeholder:text-white/30 focus-visible:ring-primary/50 transition-colors"
+                              className="bg-white/5 border-white/10 pl-10 pr-10 text-white"
                               {...field}
                             />
                             <button
                               type="button"
                               onClick={() => setShowPassword(!showPassword)}
-                              className="absolute right-3 top-3 text-white/40 hover:text-white/80 transition-colors"
+                              className="absolute right-3 top-3 text-white/40 hover:text-white/80"
                               tabIndex={-1}
                             >
                               {showPassword ? (
@@ -288,7 +270,6 @@ export default function Signup() {
                       </FormItem>
                     )}
                   />
-
                   <FormField
                     control={form.control}
                     name="confirmPassword"
@@ -301,13 +282,13 @@ export default function Signup() {
                             <Input
                               type={showConfirmPassword ? 'text' : 'password'}
                               placeholder="••••••••"
-                              className="bg-white/5 border-white/10 pl-10 pr-10 text-white placeholder:text-white/30 focus-visible:ring-primary/50 transition-colors"
+                              className="bg-white/5 border-white/10 pl-10 pr-10 text-white"
                               {...field}
                             />
                             <button
                               type="button"
                               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                              className="absolute right-3 top-3 text-white/40 hover:text-white/80 transition-colors"
+                              className="absolute right-3 top-3 text-white/40 hover:text-white/80"
                               tabIndex={-1}
                             >
                               {showConfirmPassword ? (
@@ -323,28 +304,23 @@ export default function Signup() {
                     )}
                   />
                 </div>
-
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full mt-6 bg-primary text-black hover:bg-accent hover:text-white shadow-[0_0_15px_rgba(212,175,55,0.3)] hover:shadow-[0_0_20px_rgba(0,163,255,0.5)] font-bold text-lg h-12 transition-all duration-500 group"
+                  className="w-full mt-6 bg-primary text-black hover:bg-accent hover:text-white font-bold text-lg h-12 transition-all duration-500"
                 >
                   {isLoading ? (
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                   ) : (
-                    <UserPlus className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform" />
-                  )}
+                    <UserPlus className="mr-2 h-5 w-5" />
+                  )}{' '}
                   Finalizar Cadastro
                 </Button>
               </form>
             </Form>
-
             <div className="mt-6 text-center text-sm text-white/60 border-t border-white/10 pt-6">
               Já possui uma conta?{' '}
-              <Link
-                to="/login"
-                className="text-primary hover:text-accent font-medium transition-colors"
-              >
+              <Link to="/login" className="text-primary hover:text-accent font-medium">
                 Entrar
               </Link>
             </div>

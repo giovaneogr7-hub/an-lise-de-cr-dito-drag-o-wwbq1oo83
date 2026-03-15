@@ -20,7 +20,7 @@ export default function Layout() {
     return <Navigate to="/login" replace />
   }
 
-  // Priority check: Admins bypass status restrictions
+  // Strictly bypassing pending-approval for Admins regardless of status
   const isAdmin = profile?.role === 'admin'
   const isAtivo = ['ativo', 'aprovado'].includes(profile?.status || '')
 

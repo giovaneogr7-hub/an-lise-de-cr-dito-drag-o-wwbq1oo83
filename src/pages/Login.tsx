@@ -63,7 +63,7 @@ export default function Login() {
         return
       }
 
-      // Priority check: Admins bypass status restrictions
+      // Strict Admin Bypass: Admins never go to pending approval
       const isAdmin = profile.role === 'admin'
       const isAtivo = ['ativo', 'aprovado'].includes(profile.status || '')
 
@@ -131,7 +131,6 @@ export default function Login() {
         }
         return
       } else {
-        // Missing profile logic handling
         navigate('/pending-approval')
         return
       }
