@@ -228,6 +228,25 @@ Deno.serve(async (req: Request) => {
       })
     }
 
+    if (action === 'delete') {
+      const { userId } = body
+      if (caller?.role !== 'admin')
+        throw new Error('Apenas administradores podem excluir usuários.')
+
+      // Removing from public.usuarios first clears data cascades like solicitacoes_credito and investimentos cleanly
+      const { error: dbError } = await supabaseAdmin.from('usuarios').delete().eq('id', userId)
+      if (dbError) throw dbError
+
+      // Delete from auth.users
+      const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId)
+      if (authError)
+        console.error('Failed to delete auth user, but public profile removed:', authError)
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     throw new Error('Invalid action')
   } catch (err: any) {
     return new Response(JSON.stringify({ error: err.message }), {
