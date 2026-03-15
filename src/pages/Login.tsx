@@ -57,7 +57,12 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false)
 
   useEffect(() => {
-    if (!loading && user && profile) {
+    if (!loading && user) {
+      if (!profile) {
+        navigate('/pending-approval')
+        return
+      }
+
       const isAdmin = profile.role === 'admin'
       const isAtivo = ['ativo', 'aprovado'].includes(profile.status || '')
 
@@ -105,7 +110,7 @@ export default function Login() {
         .from('usuarios')
         .select('*')
         .eq('id', session.user.id)
-        .single()
+        .maybeSingle()
 
       if (userProfile) {
         const isAdmin = userProfile.role === 'admin'
@@ -117,6 +122,9 @@ export default function Login() {
         } else {
           navigate('/pending-approval')
         }
+        return
+      } else {
+        navigate('/pending-approval')
         return
       }
     }

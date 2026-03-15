@@ -25,7 +25,7 @@ export default function PendingApproval() {
     navigate('/login')
   }
 
-  if (loading || !profile) {
+  if (loading) {
     return (
       <div className="min-h-screen w-full bg-black flex items-center justify-center">
         <Loader2 className="w-10 h-10 animate-spin text-primary" />
